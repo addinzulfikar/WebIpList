@@ -1,0 +1,426 @@
+@*TEST*@
+
+@{
+    ViewBag.Title = "CSV Upload";
+    var headers = ViewBag.Headers as string[];
+    var rows = ViewBag.Rows as List<string[]>;
+}
+
+<style>
+    html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f1f5f9;
+    }
+
+    .body-content {
+        width: 100vw;
+        background: #fef3c7;
+        border-radius: 24px;
+        padding: 40px 24px;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        padding: 40px 24px 20px 24px;
+    }
+
+
+
+    .upload-container {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+        padding: 32px;
+        margin: 0 auto;
+    }
+
+    .upload-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .upload-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .upload-form input[type="file"] {
+        font-size: 1rem;
+        padding: 6px;
+    }
+
+    .upload-form-button {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    .upload-form button {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    .upload-form button:hover {
+        background: #1e40af;
+    }
+
+    .error-message {
+        color: #b91c1c;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-top: 16px;
+        font-size: 1rem;
+        text-align: center;
+    }
+
+    .csv-table-scroll-x,
+    .csv-table-container {
+        overflow-x: auto;
+        width: 100%;
+        margin: 0 auto;
+        margin-top: 24px;
+    }
+
+    .csv-table {
+        border-collapse: collapse;
+        width: 100%;
+        background: #fff;
+        font-size: 0.95rem;
+        min-width: 1000px;
+    }
+
+    .csv-table th,
+    .csv-table td {
+        border: 1px solid #d1d5db;
+        padding: 12px 16px;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .csv-table th {
+        background-color: #e5e7eb;
+        font-weight: 600;
+        color: #374151;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .csv-table tr:nth-child(even) {
+        background-color: #f9fafb;
+    }
+
+    .csv-table tr:hover {
+        background-color: #e0e7ff;
+    }
+
+    .parsed-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2563eb;
+        margin-top: 32px;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+
+    .data-count-box {
+        font-size: 1rem;
+        color: #2563eb;
+        font-weight: 500;
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+    .table-filter-box {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .table-filter-input,
+    .table-filter-select {
+        padding: 8px 12px;
+        border: 1.5px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 1rem;
+        background: #f9fafb;
+        transition: 0.2s ease;
+    }
+
+    .table-filter-input:focus,
+    .table-filter-select:focus {
+        border-color: #2563eb;
+        outline: none;
+    }
+
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.7);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .loading-overlay.active {
+        display: flex;
+    }
+
+    body.loading-active *:not(.loading-overlay):not(.loading-overlay *) {
+        pointer-events: none !important;
+        user-select: none !important;
+    }
+
+
+    .loading-text {
+        margin-top: 16px;
+        font-size: 1.1rem;
+        color: #2563eb;
+        font-weight: 500;
+        text-align: center;
+    }
+
+   
+</style>
+
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div>
+        <div class="spinner"></div>
+        <div class="loading-text">Loading, please wait...</div>
+    </div>
+</div>
+
+<div class="upload-container">
+    <div class="upload-title">Upload CSV File</div>
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { enctype = "multipart/form-data", @class = "upload-form", id = "csvUploadForm" }))
+    {
+        <input type="file" name="file" accept=".csv" class="upload-form-button" style="background:#059669;" />
+        <button type="submit">Upload </button>
+    }
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="error-message">@ViewBag.Error</div>
+    }
+
+    @if (headers != null && rows != null)
+    {
+        <div class="parsed-title">Parsed Data</div>
+        <div class="table-filter-box">
+            <label for="columnSelect" style="font-weight:500;color:#2563eb;">Filter Kolom:</label>
+            <select id="columnSelect" class="table-filter-select">
+                @for (int i = 0; i < headers.Length; i++)
+                {
+                    <option value="@i">@headers[i].Trim('"')</option>
+                }
+            </select>
+            <input type="text" id="tableFilter" class="table-filter-input" placeholder="Ketik untuk mencari...">
+        </div>
+        <div style="text-align:center; margin-bottom:20px;">
+            <button id="exportCsvBtn" class="upload-form-button" style="background:#059669;">Export Filtered CSV</button>
+        </div>
+
+        <div class="data-count-box">
+            Ditemukan <span id="dataCount"></span> data
+        </div>
+        <!-- Scrollbar atas -->
+        <div class="csv-table-scroll-x" id="scrollTop">
+            <div id="scrollTopDummy" style="height:1px;"></div>
+        </div>
+        <div class="csv-table-container" id="scrollBottom">
+            <table class="csv-table" id="csvTable">
+                <thead>
+                    <tr>
+                        @foreach (var h in headers)
+                        {
+                            <th>@h.Trim('"')</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            @for (int i = 0; i < headers.Length; i++)
+                            {
+                                <td>
+                                    @{
+                                        var cell = (i < row.Length ? row[i] : "");
+                                        if (cell == "\"\"")
+                                        {
+                                            @: ""
+                                        }
+                                        else
+                                        {
+                                            @cell.Trim('"')
+                                        }
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var input = document.getElementById("tableFilter");
+        var select = document.getElementById("columnSelect");
+        var overlay = document.getElementById("loadingOverlay");
+        var dataCount = document.getElementById("dataCount");
+
+        function setFilterDisabled(disabled) {
+            if (input) input.disabled = disabled;
+            if (select) select.disabled = disabled;
+        }
+
+        function updateDataCount() {
+            var table = document.getElementById("csvTable");
+            var trs = table ? table.getElementsByTagName("tr") : [];
+            var count = 0;
+            for (var i = 1; i < trs.length; i++) { // skip header
+                if (trs[i].style.display !== "none") count++;
+            }
+            if (dataCount) dataCount.textContent = count;
+        }
+
+        function filterTable() {
+            var filter = input.value.toLowerCase();
+            var colIdx = parseInt(select.value);
+            var table = document.getElementById("csvTable");
+            var trs = table.getElementsByTagName("tr");
+            for (var i = 1; i < trs.length; i++) { // skip header
+                var tds = trs[i].getElementsByTagName("td");
+                if (tds.length === 0) continue;
+                var cellText = tds[colIdx].textContent.toLowerCase();
+                trs[i].style.display = (filter === "" || cellText.indexOf(filter) > -1) ? "" : "none";
+            }
+            updateDataCount();
+            syncScrollDummyWidth();
+        }
+
+        if (input && select) {
+            input.addEventListener("keyup", filterTable);
+            select.addEventListener("change", filterTable);
+        }
+
+        // Loading overlay on form submit
+        var form = document.getElementById("csvUploadForm");
+        if (form && overlay) {
+            form.addEventListener("submit", function () {
+                overlay.classList.add("active");
+                document.body.classList.add("loading-active");
+                setFilterDisabled(true);
+            });
+        }
+
+        // Double horizontal scroll sync
+        var scrollTop = document.getElementById('scrollTop');
+        var scrollBottom = document.getElementById('scrollBottom');
+        var table = document.getElementById('csvTable');
+        var scrollTopDummy = document.getElementById('scrollTopDummy');
+        function syncScrollDummyWidth() {
+            if (scrollTopDummy && table) {
+                // Always set dummy width to table width, even if all rows are hidden
+                scrollTopDummy.style.width = table.offsetWidth + "px";
+            }
+        }
+        if (scrollTop && scrollBottom && table && scrollTopDummy) {
+            syncScrollDummyWidth();
+            window.addEventListener('resize', syncScrollDummyWidth);
+            scrollTop.onscroll = function () {
+                scrollBottom.scrollLeft = scrollTop.scrollLeft;
+            };
+            scrollBottom.onscroll = function () {
+                scrollTop.scrollLeft = scrollBottom.scrollLeft;
+            };
+        }
+
+        // Tampilkan loading saat halaman pertama kali load data
+        if (overlay) {
+            overlay.classList.add("active");
+            document.body.classList.add("loading-active");
+            setFilterDisabled(true);
+        }
+
+        // Inisialisasi jumlah data saat pertama kali load, lalu hilangkan loading
+        setTimeout(function () {
+            updateDataCount();
+            syncScrollDummyWidth();
+            if (overlay) overlay.classList.remove("active");
+            document.body.classList.remove("loading-active");
+            setFilterDisabled(false);
+        }, 400); // 400ms agar loading terlihat, bisa diubah sesuai kebutuhan
+    });
+
+    document.getElementById("exportCsvBtn").addEventListener("click", function () {
+        const table = document.getElementById("csvTable");
+        const rows = Array.from(table.querySelectorAll("tr"))
+            .filter(row => row.style.display !== "none");
+
+        if (rows.length === 0) {
+            alert("Tidak ada data untuk diekspor.");
+            return;
+        }
+
+        const csv = [];
+        rows.forEach(row => {
+            const cols = Array.from(row.querySelectorAll("th, td"))
+                .map(cell => {
+                    let text = cell.textContent.trim();
+                    // Escape " and commas
+                    text = text.replace(/"/g, '""');
+                    if (text.includes(',') || text.includes('"')) {
+                        text = `"${text}"`;
+                    }
+                    return text;
+                });
+            csv.push(cols.join(","));
+        });
+
+        const csvContent = csv.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+        // Create download link
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", "filtered_data.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+</script>
