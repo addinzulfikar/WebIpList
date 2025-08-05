@@ -6,11 +6,16 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8" />
     <title>Data Review</title>
     <!-- Bootstrap 4 CDN, bisa diganti ke lokal jika perlu -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <!-- Tempus Dominus Bootstrap 4 (Datetimepicker) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/css/tempusdominus-bootstrap-4.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -67,6 +72,9 @@
             color: #2563eb;
             font-weight: 500;
         }
+
+
+
     </style>
 </head>
 <body>
@@ -80,7 +88,87 @@
             </div>
         </div>
         <div class="row mb-3">
+            <div class="col-12 d-flex flex-wrap align-items-end" id="deviceCalcFilterBox" style="gap:12px;">
+                <label class="mb-0 font-weight-bold w-100">Device Price Calculator:</label>
+
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">location</span>
+                    <select class="form-control form-control-sm w-auto" id="filterLocation"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">u_type</span>
+                    <select class="form-control form-control-sm w-auto" id="filterUType"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">department</span>
+                    <select class="form-control form-control-sm w-auto" id="filterDepartment"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">acquisition_methode</span>
+                    <select class="form-control form-control-sm w-auto" id="filterAcquisition"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">install_status</span>
+                    <select class="form-control form-control-sm w-auto" id="filterInstallStatus"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">sub_status</span>
+                    <select class="form-control form-control-sm w-auto" id="filterSubStatus"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">asset_function</span>
+                    <select class="form-control form-control-sm w-auto" id="filterAssetFunction"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">sys_created_by</span>
+                    <select class="form-control form-control-sm w-auto" id="filterSysCreatedBy"></select>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">Start Date</span>
+                    <div class="input-group date" id="startDatePicker" data-target-input="nearest">
+                        <input type="text" id="inputStartDate" class="form-control form-control-sm datetimepicker-input" data-target="#startDatePicker" placeholder="Start Date (d-MM-yyyy HH:mm:ss)" />
+                        <div class="input-group-append" data-target="#startDatePicker" data-toggle="datetimepicker">
+                            <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">End Date</span>
+                    <div class="input-group date" id="endDatePicker" data-target-input="nearest">
+                        <input type="text" id="inputEndDate" class="form-control form-control-sm datetimepicker-input" data-target="#endDatePicker" placeholder="End Date (d-MM-yyyy HH:mm:ss)" />
+                        <div class="input-group-append" data-target="#endDatePicker" data-toggle="datetimepicker">
+                            <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">Harga (Rp)</span>
+                    <input class="form-control form-control-sm w-auto" id="inputHarga" type="number" placeholder="Harga (Rp)" min="0" />
+                </div>
+                <div class="mr-2">
+                    <span style="font-size:0.95rem;">Tipe Pembayaran</span>
+                    <select class="form-control form-control-sm w-auto" id="inputTypePembayaran">
+                        <option value="hari">Hari</option>
+                        <option value="bulan">Bulan</option>
+                        <option value="tahun">Tahun</option>
+                    </select>
+                </div>
+                <div class="mr-2 align-self-end">
+                    <button class="btn btn-primary btn-sm" id="btnCalcHarga">Hitung</button>
+                </div>
+
+
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-12">
+                <div id="calcResultBox" class="alert alert-info" style="display:none;"></div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            
             <div class="col-12 d-flex flex-wrap align-items-center table-filter-box">
+                <label class="mb-0 font-weight-bold w-100">Data List:</label>
                 <select class="form-control form-control-sm w-auto mr-2" id="columnSelect">
                     @for (int i = 0; i < headers.Length; i++)
                     {
@@ -154,6 +242,8 @@
 
     <script>
         // Data from server
+
+        const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
         const rows = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(rows));
         let filteredRows = rows.slice();
         const pageSize = 15;
@@ -504,6 +594,8 @@
 };
     </script>
 
+
+
     <script>
         document.getElementById("overviewMenuItem").onclick = function (e) {
             e.preventDefault();
@@ -685,7 +777,203 @@
         };
     </script>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Moment.js (required) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <!-- Tempus Dominus Bootstrap 4 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/js/tempusdominus-bootstrap-4.min.js"></script>
+
+    <script>
+        (function () {
+            // Pastikan headers dan rows sudah ada
+
+
+            // Kolom yang digunakan
+            const colMap = {
+                location: "location",
+                u_type: "u_type",
+                department: "department",
+                acquisition_methode: "acquisition_methode",
+                install_status: "install_status",
+                sub_status: "sub_status",
+                asset_function: "asset_function",
+                sys_created_by: "sys_created_by",
+                u_creation_date: "u_creation_date"
+            };
+
+            // Dapatkan index kolom
+            function getColIdx(name) {
+                return headers.findIndex(h => h && h.trim().toLowerCase() === name.toLowerCase());
+            }
+
+            function populateDropdown(id, colName, allowEmpty) {
+                const idx = getColIdx(colName);
+                const select = document.getElementById(id);
+                if (!select || idx === -1) {
+                    select.innerHTML = '<option value="">(Kolom tidak ditemukan)</option>';
+                    return;
+                }
+                const values = new Set();
+                rows.forEach(row => {
+                    let v = row[idx] || "";
+                    if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+                    v = v.trim();
+                    if (allowEmpty || v !== "") values.add(v);
+                });
+                select.innerHTML = '<option value="">All</option>' +
+                    Array.from(values).sort().map(v =>
+                        v === ""
+                            ? `<option value="__EMPTY__">(empty)</option>`
+                            : `<option value="${v}">${v}</option>`
+                    ).join('');
+            }
+
+            // Perbaiki filter di btnCalcHarga
+            for (let key in filters) {
+                const filterVal = filters[key];
+                if (filterVal !== "") {
+                    const idx = getColIdx(colMap[key]);
+                    let v = row[idx];
+                    if (typeof v === "undefined" || v === null) v = "";
+                    if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+                    v = v.trim();
+                    if (filterVal === '__EMPTY__') {
+                        if (v !== "") match = false;
+                    } else {
+                        if (v !== filterVal) match = false;
+                    }
+                }
+            }
+            // Inisialisasi dropdown setelah DOM siap
+            document.addEventListener("DOMContentLoaded", function () {
+                populateDropdown("filterLocation", colMap.location, false);
+                populateDropdown("filterUType", colMap.u_type, false);
+                populateDropdown("filterDepartment", colMap.department, true);
+                populateDropdown("filterAcquisition", colMap.acquisition_methode, true);
+                populateDropdown("filterInstallStatus", colMap.install_status, false);
+                populateDropdown("filterSubStatus", colMap.sub_status, true);
+                populateDropdown("filterAssetFunction", colMap.asset_function, true);
+                populateDropdown("filterSysCreatedBy", colMap.sys_created_by, false);
+            });
+
+            // Parse tanggal format d-MM-yyyy HH:mm:ss
+            function parseDate(val) {
+                if (!val) return null;
+                // Toleransi 1/2 digit hari/bulan
+                var d = /^(\d{1,2})-(\d{1,2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(val.trim());
+                if (d) return new Date(`${d[3]}-${d[2].padStart(2, "0")}-${d[1].padStart(2, "0")}T${d[4]}:${d[5]}:${d[6]}`);
+                return null;
+            }
+
+            // Kalkulasi selisih waktu
+            function diffIn(val1, val2, type) {
+                const ms = val2 - val1;
+                if (type === "hari") return Math.ceil(ms / (1000 * 60 * 60 * 24));
+                if (type === "bulan") return Math.ceil(ms / (1000 * 60 * 60 * 24 * 30));
+                if (type === "tahun") return Math.ceil(ms / (1000 * 60 * 60 * 24 * 365));
+                return 0;
+            }
+
+            // Filter dan kalkulasi
+            document.getElementById("btnCalcHarga").onclick = function () {
+                // Ambil filter
+                const filters = {
+                    location: document.getElementById("filterLocation").value,
+                    u_type: document.getElementById("filterUType").value,
+                    department: document.getElementById("filterDepartment").value,
+                    acquisition_methode: document.getElementById("filterAcquisition").value,
+                    install_status: document.getElementById("filterInstallStatus").value,
+                    sub_status: document.getElementById("filterSubStatus").value,
+                    asset_function: document.getElementById("filterAssetFunction").value,
+                    sys_created_by: document.getElementById("filterSysCreatedBy").value
+                };
+                const startDateStr = document.getElementById("inputStartDate").value;
+                const endDateStr = document.getElementById("inputEndDate").value;
+                const harga = parseFloat(document.getElementById("inputHarga").value);
+                const typePembayaran = document.getElementById("inputTypePembayaran").value;
+
+                // Validasi input
+                if (!startDateStr || !endDateStr || isNaN(harga) || harga <= 0) {
+                    alert("Isi tanggal mulai, tanggal akhir, dan harga dengan benar.");
+                    return;
+                }
+                const startDate = parseDate(startDateStr);
+                const endDate = parseDate(endDateStr);
+                if (!startDate || !endDate || endDate < startDate) {
+                    alert("Format tanggal salah atau tanggal akhir sebelum mulai.");
+                    return;
+                }
+
+                // Filter rows
+                const filtered = rows.filter(row => {
+                    let match = true;
+                    for (let key in filters) {
+                        const filterVal = filters[key];
+                        if (filterVal !== "") {
+                            const idx = getColIdx(colMap[key]);
+                            let v = row[idx];
+                            if (typeof v === "undefined" || v === null) v = "";
+                            if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+                            v = v.trim();
+                            if (filterVal === '__EMPTY__') {
+                                if (v !== "") match = false;
+                            } else {
+                                if (v !== filterVal) match = false;
+                            }
+                        }
+                    }
+                    // u_creation_date harus dalam range
+                    const idxDate = getColIdx(colMap.u_creation_date);
+                    let vDate = row[idxDate] || "";
+                    vDate = vDate.replace(/^"(.*)"$/, '$1').trim();
+                    const d = parseDate(vDate);
+                    if (!d || d < startDate || d > endDate) match = false;
+                    return match;
+                });
+
+                // Kalkulasi
+                const durasi = diffIn(startDate, endDate, typePembayaran);
+                const totalHarga = harga * durasi * filtered.length;
+
+                // Tampilkan hasil
+                const resultBox = document.getElementById("calcResultBox");
+                resultBox.style.display = "block";
+                resultBox.innerHTML =
+                    `<b>Hasil Filter:</b> ${filtered.length} device<br>
+                    <b>Durasi:</b> ${durasi} ${typePembayaran}<br>
+                    <b>Total Harga:</b> Rp ${totalHarga.toLocaleString("id-ID")}<br>
+                    <b>Rumus:</b> <code>Total Harga = Harga x Durasi x Jumlah Device</code><br>
+                    <b>Perhitungan:</b> <code>Rp ${harga.toLocaleString("id-ID")} x ${durasi} x ${filtered.length} = Rp ${totalHarga.toLocaleString("id-ID")}</code><br>
+
+                    <b>Rincian Filter:</b> ${
+                    Object.entries(filters)
+                        .filter(([k, v]) => v !== "")
+                        .map(([k, v]) => `${k}: ${v === '__EMPTY__' ? '(empty)' : v}`)
+                        .join(", ") || "Semua"
+                        }
+                    <br>
+
+
+                    <b>Periode:</b> ${startDateStr} s/d ${endDateStr}`;
+            };
+        })();
+    </script>
+
+    <script>
+        $(function () {
+            $('#startDatePicker').datetimepicker({
+                format: 'D-MM-YYYY HH:mm:ss',
+                icons: { time: 'fa fa-clock', date: 'fa fa-calendar' }
+            });
+            $('#endDatePicker').datetimepicker({
+                format: 'D-MM-YYYY HH:mm:ss',
+                icons: { time: 'fa fa-clock', date: 'fa fa-calendar' }
+            });
+        });
+    </script>
+
 </body>
 </html>
