@@ -809,6 +809,7 @@
                 return headers.findIndex(h => h && h.trim().toLowerCase() === name.toLowerCase());
             }
 
+            // Populate dropdown filter
             function populateDropdown(id, colName, allowEmpty) {
                 const idx = getColIdx(colName);
                 const select = document.getElementById(id);
@@ -825,28 +826,10 @@
                 });
                 select.innerHTML = '<option value="">All</option>' +
                     Array.from(values).sort().map(v =>
-                        v === ""
-                            ? `<option value="__EMPTY__">(empty)</option>`
-                            : `<option value="${v}">${v}</option>`
+                        `<option value="${v === "" ? "__EMPTY__" : v}">${v === "" ? "(empty)" : v}</option>`
                     ).join('');
             }
 
-            // Perbaiki filter di btnCalcHarga
-            for (let key in filters) {
-                const filterVal = filters[key];
-                if (filterVal !== "") {
-                    const idx = getColIdx(colMap[key]);
-                    let v = row[idx];
-                    if (typeof v === "undefined" || v === null) v = "";
-                    if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
-                    v = v.trim();
-                    if (filterVal === '__EMPTY__') {
-                        if (v !== "") match = false;
-                    } else {
-                        if (v !== filterVal) match = false;
-                    }
-                }
-            }
             // Inisialisasi dropdown setelah DOM siap
             document.addEventListener("DOMContentLoaded", function () {
                 populateDropdown("filterLocation", colMap.location, false);
@@ -918,7 +901,8 @@
                             if (typeof v === "undefined" || v === null) v = "";
                             if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
                             v = v.trim();
-                            if (filterVal === '__EMPTY__') {
+                            if (filterVal === "__EMPTY__") {
+                                // Hanya cocokkan value kosong
                                 if (v !== "") match = false;
                             } else {
                                 if (v !== filterVal) match = false;
@@ -947,16 +931,7 @@
                     <b>Total Harga:</b> Rp ${totalHarga.toLocaleString("id-ID")}<br>
                     <b>Rumus:</b> <code>Total Harga = Harga x Durasi x Jumlah Device</code><br>
                     <b>Perhitungan:</b> <code>Rp ${harga.toLocaleString("id-ID")} x ${durasi} x ${filtered.length} = Rp ${totalHarga.toLocaleString("id-ID")}</code><br>
-
-                    <b>Rincian Filter:</b> ${
-                    Object.entries(filters)
-                        .filter(([k, v]) => v !== "")
-                        .map(([k, v]) => `${k}: ${v === '__EMPTY__' ? '(empty)' : v}`)
-                        .join(", ") || "Semua"
-                        }
-                    <br>
-
-
+                    <b>Rincian Filter:</b> ${Object.entries(filters).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}`).join(", ") || "Semua"}<br>
                     <b>Periode:</b> ${startDateStr} s/d ${endDateStr}`;
             };
         })();
