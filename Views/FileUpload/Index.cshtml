@@ -1,9 +1,8 @@
-@*TEST*@
-
 @{
     ViewBag.Title = "CSV Upload";
     var headers = ViewBag.Headers as string[];
     var rows = ViewBag.Rows as List<string[]>;
+    Layout = null;
 }
 
 <style>
@@ -13,19 +12,27 @@
         margin: 0;
         padding: 0;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #f1f5f9;
+        background-image: url('/Content/Images/Cover.png');
+        /* BACKGROUND PROPERTIES: Properti agar gambar background terlihat bagus */
+        background-size: cover; /* Memastikan gambar menutupi seluruh halaman */
+        background-position: center center; /* Menempatkan gambar di tengah */
+        background-attachment: fixed; /* Memastikan gambar tidak bergerak saat scroll */
+        /* FALLBACK COLOR: Warna ini akan muncul jika gambar gagal dimuat */
+        background-color: #f1f5f9;
     }
 
     .body-content {
+        /* Mengubah background body-content menjadi semi-transparan */
+        /* Agar background image tetap terlihat */
+        background: rgba(254, 243, 199, 0.8);
+        backdrop-filter: blur(10px); /* Efek blur opsional */
+
         width: 100vw;
-        background: #fef3c7;
         border-radius: 24px;
         padding: 40px 24px;
         box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         padding: 40px 24px 20px 24px;
     }
-
-
 
     .upload-container {
         background: #ffffff;
@@ -51,38 +58,27 @@
         justify-content: center;
     }
 
-    .upload-form input[type="file"] {
-        font-size: 1rem;
-        padding: 6px;
-    }
+        .upload-form input[type="file"] {
+            font-size: 1rem;
+            padding: 6px;
+        }
 
-    .upload-form-button {
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 20px;
-        font-size: 1rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.3s ease;
-    }
+        .upload-form-button,
+        .upload-form button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
 
-    .upload-form button {
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 20px;
-        font-size: 1rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.3s ease;
-    }
-
-    .upload-form button:hover {
-        background: #1e40af;
-    }
+            .upload-form button:hover {
+                background: #1e40af;
+            }
 
     .error-message {
         color: #b91c1c;
@@ -111,30 +107,30 @@
         min-width: 1000px;
     }
 
-    .csv-table th,
-    .csv-table td {
-        border: 1px solid #d1d5db;
-        padding: 12px 16px;
-        text-align: left;
-        white-space: nowrap;
-    }
+        .csv-table th,
+        .csv-table td {
+            border: 1px solid #d1d5db;
+            padding: 12px 16px;
+            text-align: left;
+            white-space: nowrap;
+        }
 
-    .csv-table th {
-        background-color: #e5e7eb;
-        font-weight: 600;
-        color: #374151;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
+        .csv-table th {
+            background-color: #e5e7eb;
+            font-weight: 600;
+            color: #374151;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
 
-    .csv-table tr:nth-child(even) {
-        background-color: #f9fafb;
-    }
+        .csv-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
 
-    .csv-table tr:hover {
-        background-color: #e0e7ff;
-    }
+        .csv-table tr:hover {
+            background-color: #e0e7ff;
+        }
 
     .parsed-title {
         font-size: 1.25rem;
@@ -171,11 +167,11 @@
         transition: 0.2s ease;
     }
 
-    .table-filter-input:focus,
-    .table-filter-select:focus {
-        border-color: #2563eb;
-        outline: none;
-    }
+        .table-filter-input:focus,
+        .table-filter-select:focus {
+            border-color: #2563eb;
+            outline: none;
+        }
 
     .loading-overlay {
         display: none;
@@ -190,15 +186,14 @@
         justify-content: center;
     }
 
-    .loading-overlay.active {
-        display: flex;
-    }
+        .loading-overlay.active {
+            display: flex;
+        }
 
     body.loading-active *:not(.loading-overlay):not(.loading-overlay *) {
         pointer-events: none !important;
         user-select: none !important;
     }
-
 
     .loading-text {
         margin-top: 16px;
@@ -208,7 +203,79 @@
         text-align: center;
     }
 
-   
+    .custom-dashboard-container {
+        margin: 0;
+        padding: 80px 0 0 100px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        background: transparent;
+    }
+
+    .dashboard-title {
+        font-size: 8vw;
+        font-weight: 400;
+        letter-spacing: 2px;
+        margin-bottom: 0.2em;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    .dashboard-subtitle span {
+        font-size: 7vw;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: 2px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    .dashboard-desc {
+        font-size: 4vw;
+        font-weight: 300;
+        margin: 0.5em 0 1.5em 0;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    .dashboard-form {
+        display: flex;
+        gap: 40px;
+        margin-top: 1.5em;
+    }
+
+    .custom-file-label {
+        background: #233a74;
+        color: #fff;
+        font-size: 2vw;
+        padding: 18px 40px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        transition: background 0.2s;
+        display: inline-block;
+        border: none;
+        font-weight: 400;
+    }
+
+        .custom-file-label:hover {
+            background: #1a2952;
+        }
+
+    .dashboard-upload-btn {
+        background: #f2c300;
+        color: #fff;
+        font-size: 2vw;
+        padding: 18px 40px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-weight: 400;
+        transition: background 0.2s;
+    }
+
+        .dashboard-upload-btn:hover {
+            background: #cfa800;
+        }
 </style>
 
 
@@ -220,78 +287,17 @@
     </div>
 </div>
 
-<div class="upload-container">
-    <div class="upload-title">Upload CSV File</div>
-    @using (Html.BeginForm(null, null, FormMethod.Post, new { enctype = "multipart/form-data", @class = "upload-form", id = "csvUploadForm" }))
+<div class="custom-dashboard-container">
+    <div class="dashboard-title">CSV</div>
+    <div class="dashboard-subtitle"><span>DATA READER</span></div>
+    <div class="dashboard-desc">DASHBOARD</div>
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { enctype = "multipart/form-data", @class = "dashboard-form", id = "csvUploadForm" }))
     {
-        <input type="file" name="file" accept=".csv" class="upload-form-button" style="background:#059669;" />
-        <button type="submit">Upload </button>
-    }
-
-    @if (ViewBag.Error != null)
-    {
-        <div class="error-message">@ViewBag.Error</div>
-    }
-
-    @if (headers != null && rows != null)
-    {
-        <div class="parsed-title">Parsed Data</div>
-        <div class="table-filter-box">
-            <label for="columnSelect" style="font-weight:500;color:#2563eb;">Filter Kolom:</label>
-            <select id="columnSelect" class="table-filter-select">
-                @for (int i = 0; i < headers.Length; i++)
-                {
-                    <option value="@i">@headers[i].Trim('"')</option>
-                }
-            </select>
-            <input type="text" id="tableFilter" class="table-filter-input" placeholder="Ketik untuk mencari...">
-        </div>
-        <div style="text-align:center; margin-bottom:20px;">
-            <button id="exportCsvBtn" class="upload-form-button" style="background:#059669;">Export Filtered CSV</button>
-        </div>
-
-        <div class="data-count-box">
-            Ditemukan <span id="dataCount"></span> data
-        </div>
-        <!-- Scrollbar atas -->
-        <div class="csv-table-scroll-x" id="scrollTop">
-            <div id="scrollTopDummy" style="height:1px;"></div>
-        </div>
-        <div class="csv-table-container" id="scrollBottom">
-            <table class="csv-table" id="csvTable">
-                <thead>
-                    <tr>
-                        @foreach (var h in headers)
-                        {
-                            <th>@h.Trim('"')</th>
-                        }
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in rows)
-                    {
-                        <tr>
-                            @for (int i = 0; i < headers.Length; i++)
-                            {
-                                <td>
-                                    @{
-                                        var cell = (i < row.Length ? row[i] : "");
-                                        if (cell == "\"\"")
-                                        {
-                                            @: ""
-                                        }
-                                        else
-                                        {
-                                            @cell.Trim('"')
-                                        }
-                                    }
-                                </td>
-                            }
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        <label class="custom-file-label">
+            <input type="file" name="file" accept=".csv" style="display:none;" onchange="document.getElementById('fileNameLabel').innerText = this.files[0]?.name || 'Upload CSV FILE!';" />
+            <span id="fileNameLabel">Upload CSV FILE!</span>
+        </label>
+        <button type="submit" class="dashboard-upload-btn">Upload</button>
     }
 </div>
 

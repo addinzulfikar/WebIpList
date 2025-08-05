@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Web;
 using System.Web.Mvc;
+using Microsoft.VisualBasic.FileIO;
 
 namespace YourNamespace.Controllers
 {
@@ -29,19 +30,23 @@ namespace YourNamespace.Controllers
             string[] headers = null;
 
             using (var reader = new StreamReader(file.InputStream, Encoding.UTF8))
+            using (var parser = new TextFieldParser(reader))
             {
+                parser.TextFieldType = FieldType.Delimited;
+                parser.SetDelimiters(",");
+                parser.HasFieldsEnclosedInQuotes = true;
+
                 int rowIndex = 0;
-                while (!reader.EndOfStream)
+                while (!parser.EndOfData)
                 {
-                    var line = reader.ReadLine();
-
-                    // Skip empty or whitespace-only lines
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-
-                    System.Diagnostics.Debug.WriteLine("Line 0: " + line);
-
-                    var values = line.Split(',');
+                    var values = parser.ReadFields();
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        if (!string.IsNullOrEmpty(values[i]))
+                        {
+                            values[i] = values[i].Trim();
+                        }
+                    }
 
                     if (rowIndex == 0)
                     {
@@ -61,10 +66,23 @@ namespace YourNamespace.Controllers
                         rows.Add(values);
                     }
                     rowIndex++;
-                   
                 }
             }
 
+            TempData["Headers"] = headers;
+            TempData["Rows"] = rows;
+            return RedirectToAction("DataReview");
+        }
+
+        [HttpGet]
+        public ActionResult DataReview()
+        {
+            var headers = TempData["Headers"] as string[];
+            var rows = TempData["Rows"] as List<string[]>;
+            if (headers == null || rows == null)
+            {
+                return RedirectToAction("Index");
+            }
             ViewBag.Headers = headers;
             ViewBag.Rows = rows;
             return View();

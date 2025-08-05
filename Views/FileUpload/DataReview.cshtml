@@ -1,0 +1,691 @@
+@{
+    Layout = null;
+    var headers = ViewBag.Headers as string[];
+    var rows = ViewBag.Rows as List<string[]>;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Data Review</title>
+    <!-- Bootstrap 4 CDN, bisa diganti ke lokal jika perlu -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #fff;
+        }
+
+        .header-logo {
+            height: 48px;
+        }
+
+        .table-responsive {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        th, td {
+            border: 2px solid #222 !important;
+            padding: 8px 6px !important;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: #f5f5f5;
+        }
+
+        .btn-export {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        .btn-overview {
+            background: #2196f3;
+            color: #fff;
+        }
+
+        .pagination .active {
+            background: #222 !important;
+            color: #fff !important;
+        }
+
+        .pagination .disabled {
+            color: #bbb !important;
+            background: #eee !important;
+            cursor: not-allowed !important;
+        }
+
+        .table-filter-box {
+            gap: 12px;
+        }
+
+        .data-count-box {
+            font-size: 1rem;
+            color: #2563eb;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid px-3 px-md-5">
+        <div class="row align-items-center mt-4 mb-2">
+            <div class="col-12 col-md-6">
+                <h1 class="text-primary font-weight-bold" style="font-size:2rem;">Data Review</h1>
+            </div>
+            <div class="col-12 col-md-6 text-md-right text-center">
+                <img src="/Content/Images/pama-logo.png" alt="PAMA" class="header-logo" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-12 d-flex flex-wrap align-items-center table-filter-box">
+                <select class="form-control form-control-sm w-auto mr-2" id="columnSelect">
+                    @for (int i = 0; i < headers.Length; i++)
+                    {
+                        <option value="@i">@headers[i]</option>
+                    }
+                </select>
+                <input class="form-control form-control-sm w-auto mr-2" id="tableFilter" type="text" placeholder="Filter data..." autocomplete="off" />
+                <select class="form-control form-control-sm w-auto mr-2" id="sortColumn">
+                    <option value="">Sort by (Time/Date)</option>
+                    @for (int i = 0; i < headers.Length; i++)
+                    {
+                        // Ganti dengan nama kolom waktu/tanggal yang sesuai
+                        if (headers[i].ToLower().Contains("date") || headers[i].ToLower().Contains("time") || headers[i].ToLower().Contains("created") || headers[i].ToLower().Contains("updated"))
+                        {
+                            <option value="@i">@headers[i]</option>
+                        }
+                    }
+                </select>
+                <select class="form-control form-control-sm w-auto mr-2" id="sortOrder">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+                <span class="data-count-box">Data: <span id="dataCount"></span></span>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-12">
+                <div id="overviewStats" class="mb-2"></div>
+                <div id="overviewDetails" style="display:none;" class="mb-2"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 table-responsive">
+                <table class="table table-bordered table-sm mb-0" id="dataTable">
+                    <thead>
+                        <tr>
+                            @foreach (var h in headers)
+                            {
+                                <th>@(h != null ? h.Trim('"') : "")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data rows will be rendered by JS for pagination -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="row align-items-center mt-3">
+            <div class="col-12 col-md-4 mb-2 mb-md-0">
+                <button class="btn btn-export btn-sm" id="exportBtn">EXPORT</button>
+            </div>
+            <div class="col-12 col-md-4 mb-2 mb-md-0 d-flex justify-content-center">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                </nav>
+            </div>
+            <div class="col-12 col-md-4 text-md-right text-center">
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-overview btn-sm dropdown-toggle" type="button" id="toolsDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Tools
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="toolsDropdown">
+                        <a class="dropdown-item" href="#" id="overviewMenuItem">Data Overview</a>
+                        <!-- Add more tools here as needed -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data from server
+        const rows = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(rows));
+        let filteredRows = rows.slice();
+        const pageSize = 15;
+        let currentPage = 1;
+
+        function updateDataCount() {
+            document.getElementById("dataCount").textContent = filteredRows.length;
+        }
+
+        function renderTable(page) {
+            const tbody = document.querySelector("#dataTable tbody");
+            tbody.innerHTML = "";
+            const start = (page - 1) * pageSize;
+            const end = Math.min(start + pageSize, filteredRows.length);
+            for (let i = start; i < end; i++) {
+                const tr = document.createElement("tr");
+                for (let cell of filteredRows[i]) {
+                    const td = document.createElement("td");
+                    // Hanya tampilkan "" jika benar-benar kosong, selain itu hilangkan tanda kutip di awal/akhir
+                    td.textContent = (cell == null || cell === "" || cell === "\"\"") ? "\"\"" : cell.replace(/^"(.*)"$/, '$1');
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+            updateDataCount();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+            const pag = document.getElementById("pagination");
+            pag.innerHTML = "";
+
+            function pageBtn(label, page, disabled, active) {
+                const li = document.createElement("li");
+                li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
+                const btn = document.createElement("button");
+                btn.className = "page-link";
+                btn.textContent = label;
+                btn.disabled = disabled;
+                btn.onclick = function () {
+                    if (!disabled) {
+                        currentPage = page;
+                        renderTable(currentPage);
+                        renderPagination();
+                    }
+                };
+                li.appendChild(btn);
+                return li;
+            }
+
+            pag.appendChild(pageBtn("�", currentPage - 1, currentPage === 1));
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    pag.appendChild(pageBtn(i, i, false, i === currentPage));
+                } else if (i === 2 && currentPage > 4) {
+                    const li = document.createElement("li");
+                    li.className = "page-item disabled";
+                    li.innerHTML = '<span class="page-link">...</span>';
+                    pag.appendChild(li);
+                } else if (i === totalPages - 1 && currentPage < totalPages - 3) {
+                    const li = document.createElement("li");
+                    li.className = "page-item disabled";
+                    li.innerHTML = '<span class="page-link">...</span>';
+                    pag.appendChild(li);
+                }
+            }
+            pag.appendChild(pageBtn("�", currentPage + 1, currentPage === totalPages));
+        }
+
+        function parseDate(val) {
+            if (!val) return null;
+            // Format: dd-MM-yyyy HH:mm:ss
+            var d = /^(\d{2})-(\d{2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(val);
+            if (d) return new Date(`${d[3]}-${d[2]}-${d[1]}T${d[4]}:${d[5]}:${d[6]}`);
+            // Format: dd-MM-yyyy
+            d = /^(\d{2})-(\d{2})-(\d{4})$/.exec(val);
+            if (d) return new Date(`${d[3]}-${d[2]}-${d[1]}`);
+            // Fallback: try Date constructor
+            var date = new Date(val);
+            if (!isNaN(date.getTime())) return date;
+            return null;
+        }
+
+        function sortRows(rows, colIdx, order) {
+            return rows.slice().sort(function (a, b) {
+                let va = a[colIdx] || "";
+                let vb = b[colIdx] || "";
+                let da = parseDate(va);
+                let db = parseDate(vb);
+                if (da && db) {
+                    if (da < db) return order === "asc" ? -1 : 1;
+                    if (da > db) return order === "asc" ? 1 : -1;
+                    return 0;
+                }
+                // Fallback: string compare
+                if (va < vb) return order === "asc" ? -1 : 1;
+                if (va > vb) return order === "asc" ? 1 : -1;
+                return 0;
+            });
+        }
+
+
+
+        function filterTable() {
+            const filter = document.getElementById("tableFilter").value.toLowerCase();
+            const colIdx = parseInt(document.getElementById("columnSelect").value);
+            const sortCol = document.getElementById("sortColumn").value;
+            const sortOrder = document.getElementById("sortOrder").value;
+
+            // Filter
+            filteredRows = rows.filter(row => {
+                const cell = row[colIdx] || "";
+                if (filter === "") return true;
+                if (filter === "\"\"") return (cell == null || cell === "" || cell === "\"\"");
+                return cell.toLowerCase().indexOf(filter) > -1;
+            });
+
+            // Sort jika dipilih
+            if (sortCol !== "") {
+                filteredRows = sortRows(filteredRows, parseInt(sortCol), sortOrder);
+            }
+
+            currentPage = 1;
+            renderTable(currentPage);
+            renderPagination();
+        }
+
+        document.getElementById("tableFilter").addEventListener("keyup", filterTable);
+        document.getElementById("columnSelect").addEventListener("change", filterTable);
+        document.getElementById("sortColumn").addEventListener("change", filterTable);
+        document.getElementById("sortOrder").addEventListener("change", filterTable);
+        document.getElementById("exportBtn").onclick = function () {
+            function escapeCsv(val) {
+                // Jika null/undefined/empty string, tampilkan ""
+                if (val == null || val === "") return "\"\"";
+                // Selain itu, tampilkan apa adanya
+                return val;
+            }
+
+            let csv = "";
+            // Header
+            const ths = document.querySelectorAll("#dataTable th");
+            csv += Array.from(ths).map(th => escapeCsv(th.textContent)).join(",") + "\n";
+            // Data
+            for (let row of filteredRows) {
+                csv += row.map(cell => escapeCsv(cell)).join(",") + "\n";
+            }
+            const blob = new Blob([csv], { type: "text/csv" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "data_review.csv";
+            link.click();
+        };
+
+
+
+        // Initial render
+        filterTable();
+    </script>
+
+    <script>
+        document.getElementById("overviewBtn").onclick = function () {
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
+    const data = filteredRows.length ? filteredRows : rows;
+    const pageSize = 15; // Jumlah value unik per halaman
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Data Overview</title>
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 24px; }
+                .topbar { margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+                .value-list { margin-bottom: 32px; }
+                .value-item { cursor: pointer; color: #2563eb; }
+                .value-item:hover { text-decoration: underline; }
+                .data-table { margin-top: 16px; }
+                .close-btn { margin-bottom: 16px; }
+                .pagination { margin: 0; }
+                .pagination .active .page-link { background: #222; color: #fff; }
+                .pagination .disabled .page-link { color: #bbb; background: #eee; }
+            </style>
+        </head>
+        <body>
+            <h1>Data Overview</h1>
+            <div class="topbar">
+                <label for="columnSelectOverview" class="mb-0 font-weight-bold">Select Column:</label>
+                <select class="form-control form-control-sm w-auto" id="columnSelectOverview"></select>
+            </div>
+            <div id="overviewContent"></div>
+            <nav>
+                <ul class="pagination pagination-sm" id="overviewPagination"></ul>
+            </nav>
+            <div id="valueDataModal" style="display:none;">
+                <button class="btn btn-secondary btn-sm close-btn" id="backBtn">Back</button>
+                <div id="valueDataTable"></div>
+            </div>
+        </body>
+        </html>
+    `);
+
+    win.document.close();
+
+    win.onload = function () {
+        // Data
+        win.headers = headers;
+        win.data = data;
+        win.pageSize = pageSize;
+        win.currentColIdx = 0;
+        win.currentPage = 1;
+        win.valueList = [];
+
+        // Populate column dropdown
+        const colSelect = win.document.getElementById('columnSelectOverview');
+        win.headers.forEach((h, i) => {
+            const opt = win.document.createElement('option');
+            opt.value = i;
+            opt.textContent = h;
+            colSelect.appendChild(opt);
+        });
+
+        // Build value list for selected column
+        win.buildValueList = function () {
+            const colIdx = win.currentColIdx;
+            const counts = {};
+            win.data.forEach(row => {
+                let val = row[colIdx] || "";
+                val = val.replace(/^"(.*)"$/, '$1');
+                counts[val] = (counts[val] || 0) + 1;
+            });
+            win.valueList = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        };
+
+        // Render value list with pagination
+        win.renderOverview = function () {
+            win.buildValueList();
+            const totalPages = Math.max(1, Math.ceil(win.valueList.length / win.pageSize));
+            const start = (win.currentPage - 1) * win.pageSize;
+            const end = Math.min(start + win.pageSize, win.valueList.length);
+            let html = '<div class="value-list">';
+            html += '<h2>' + win.headers[win.currentColIdx] + '</h2>';
+            html += '<ul class="list-group">';
+            for (let i = start; i < end; i++) {
+                const [val, count] = win.valueList[i];
+                html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                html += '<span class="value-item" data-col="' + win.currentColIdx + '" data-value="' + encodeURIComponent(val) + '">' + (val === "" ? "(empty)" : val) + '</span>';
+                html += '<span class="badge badge-primary badge-pill">' + count + '</span>';
+                html += '</li>';
+            }
+            html += '</ul></div>';
+            win.document.getElementById('overviewContent').innerHTML = html;
+
+            // Pagination
+            const pag = win.document.getElementById('overviewPagination');
+            pag.innerHTML = "";
+            function pageBtn(label, page, disabled, active) {
+                const li = win.document.createElement("li");
+                li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
+                const btn = win.document.createElement("button");
+                btn.className = "page-link";
+                btn.textContent = label;
+                btn.disabled = disabled;
+                btn.onclick = function () {
+                    if (!disabled) {
+                        win.currentPage = page;
+                        win.renderOverview();
+                    }
+                };
+                li.appendChild(btn);
+                return li;
+            }
+            pag.appendChild(pageBtn("�", win.currentPage - 1, win.currentPage === 1));
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= win.currentPage - 2 && i <= win.currentPage + 2)) {
+                    pag.appendChild(pageBtn(i, i, false, i === win.currentPage));
+                } else if (i === 2 && win.currentPage > 4) {
+                    const li = win.document.createElement("li");
+                    li.className = "page-item disabled";
+                    li.innerHTML = '<span class="page-link">...</span>';
+                    pag.appendChild(li);
+                } else if (i === totalPages - 1 && win.currentPage < totalPages - 3) {
+                    const li = win.document.createElement("li");
+                    li.className = "page-item disabled";
+                    li.innerHTML = '<span class="page-link">...</span>';
+                    pag.appendChild(li);
+                }
+            }
+            pag.appendChild(pageBtn("�", win.currentPage + 1, win.currentPage === totalPages));
+        };
+
+        // Show rows for a specific value in a column
+        win.showValueData = function(colIdx, value) {
+            win.document.getElementById('overviewContent').style.display = 'none';
+            win.document.getElementById('overviewPagination').style.display = 'none';
+            win.document.getElementById('valueDataModal').style.display = 'block';
+            value = decodeURIComponent(value);
+            const rows = win.data.filter(row => {
+                let val = row[colIdx] || "";
+                val = val.replace(/^"(.*)"$/, '$1');
+                return val === value;
+            });
+            let html = '<h3>Rows with <b>' + win.headers[colIdx] + ' = "' + (value === "" ? "(empty)" : value) + '"</b></h3>';
+            html += '<div style="overflow-x:auto;"><table class="table table-bordered table-sm data-table"><thead><tr>';
+            win.headers.forEach(h => html += '<th>' + h + '</th>');
+            html += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                html += '<tr>';
+                row.forEach(cell => html += '<td>' + (cell == null ? "" : cell.replace(/^"(.*)"$/, '$1')) + '</td>');
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            win.document.getElementById('valueDataTable').innerHTML = html;
+        };
+
+        // Event: change column
+        win.document.getElementById('columnSelectOverview').onchange = function () {
+            win.currentColIdx = parseInt(this.value);
+            win.currentPage = 1;
+            win.document.getElementById('overviewContent').style.display = 'block';
+            win.document.getElementById('overviewPagination').style.display = 'flex';
+            win.document.getElementById('valueDataModal').style.display = 'none';
+            win.renderOverview();
+        };
+
+        // Event delegation for value-item clicks
+        win.document.getElementById('overviewContent').addEventListener('click', function (e) {
+            if (e.target.classList.contains('value-item')) {
+                const colIdx = parseInt(e.target.getAttribute('data-col'));
+                const value = e.target.getAttribute('data-value');
+                win.showValueData(colIdx, value);
+            }
+        });
+
+        // Back button
+        win.document.getElementById('backBtn').onclick = function () {
+            win.document.getElementById('valueDataModal').style.display = 'none';
+            win.document.getElementById('overviewContent').style.display = 'block';
+            win.document.getElementById('overviewPagination').style.display = 'flex';
+        };
+
+        // Initial render
+        win.renderOverview();
+    };
+};
+    </script>
+
+    <script>
+        document.getElementById("overviewMenuItem").onclick = function (e) {
+            e.preventDefault();
+            const win = window.open("", "_blank");
+            if (!win) return;
+
+            const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
+            const data = filteredRows.length ? filteredRows : rows;
+            const pageSize = 15; // Number of unique values per page
+
+            win.document.write(`
+                <html>
+                <head>
+                    <title>Data Overview</title>
+                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+                    <style>
+                        body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 24px; }
+                        .topbar { margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+                        .value-list { margin-bottom: 32px; }
+                        .value-item { cursor: pointer; color: #2563eb; }
+                        .value-item:hover { text-decoration: underline; }
+                        .data-table { margin-top: 16px; }
+                        .close-btn { margin-bottom: 16px; }
+                        .pagination { margin: 0; }
+                        .pagination .active .page-link { background: #222; color: #fff; }
+                        .pagination .disabled .page-link { color: #bbb; background: #eee; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Data Overview</h1>
+                    <div class="topbar">
+                        <label for="columnSelectOverview" class="mb-0 font-weight-bold">Select Column:</label>
+                        <select class="form-control form-control-sm w-auto" id="columnSelectOverview"></select>
+                    </div>
+                    <div id="overviewContent"></div>
+                    <nav>
+                        <ul class="pagination pagination-sm" id="overviewPagination"></ul>
+                    </nav>
+                    <div id="valueDataModal" style="display:none;">
+                        <button class="btn btn-secondary btn-sm close-btn" id="backBtn">Back</button>
+                        <div id="valueDataTable"></div>
+                    </div>
+                </body>
+                </html>
+            `);
+
+            win.document.close();
+
+            win.onload = function () {
+                win.headers = headers;
+                win.data = data;
+                win.pageSize = pageSize;
+                win.currentColIdx = 0;
+                win.currentPage = 1;
+                win.valueList = [];
+
+                const colSelect = win.document.getElementById('columnSelectOverview');
+                win.headers.forEach((h, i) => {
+                    const opt = win.document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = h;
+                    colSelect.appendChild(opt);
+                });
+
+                win.buildValueList = function () {
+                    const colIdx = win.currentColIdx;
+                    const counts = {};
+                    win.data.forEach(row => {
+                        let val = row[colIdx] || "";
+                        val = val.replace(/^"(.*)"$/, '$1');
+                        counts[val] = (counts[val] || 0) + 1;
+                    });
+                    win.valueList = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                };
+
+                win.renderOverview = function () {
+                    win.buildValueList();
+                    const totalPages = Math.max(1, Math.ceil(win.valueList.length / win.pageSize));
+                    const start = (win.currentPage - 1) * win.pageSize;
+                    const end = Math.min(start + win.pageSize, win.valueList.length);
+                    let html = '<div class="value-list">';
+                    html += '<h2>' + win.headers[win.currentColIdx] + '</h2>';
+                    html += '<ul class="list-group">';
+                    for (let i = start; i < end; i++) {
+                        const [val, count] = win.valueList[i];
+                        html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                        html += '<span class="value-item" data-col="' + win.currentColIdx + '" data-value="' + encodeURIComponent(val) + '">' + (val === "" ? "(empty)" : val) + '</span>';
+                        html += '<span class="badge badge-primary badge-pill">' + count + '</span>';
+                        html += '</li>';
+                    }
+                    html += '</ul></div>';
+                    win.document.getElementById('overviewContent').innerHTML = html;
+
+                    const pag = win.document.getElementById('overviewPagination');
+                    pag.innerHTML = "";
+                    function pageBtn(label, page, disabled, active) {
+                        const li = win.document.createElement("li");
+                        li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
+                        const btn = win.document.createElement("button");
+                        btn.className = "page-link";
+                        btn.textContent = label;
+                        btn.disabled = disabled;
+                        btn.onclick = function () {
+                            if (!disabled) {
+                                win.currentPage = page;
+                                win.renderOverview();
+                            }
+                        };
+                        li.appendChild(btn);
+                        return li;
+                    }
+                    pag.appendChild(pageBtn("‹", win.currentPage - 1, win.currentPage === 1));
+                    for (let i = 1; i <= totalPages; i++) {
+                        if (i === 1 || i === totalPages || (i >= win.currentPage - 2 && i <= win.currentPage + 2)) {
+                            pag.appendChild(pageBtn(i, i, false, i === win.currentPage));
+                        } else if (i === 2 && win.currentPage > 4) {
+                            const li = win.document.createElement("li");
+                            li.className = "page-item disabled";
+                            li.innerHTML = '<span class="page-link">...</span>';
+                            pag.appendChild(li);
+                        } else if (i === totalPages - 1 && win.currentPage < totalPages - 3) {
+                            const li = win.document.createElement("li");
+                            li.className = "page-item disabled";
+                            li.innerHTML = '<span class="page-link">...</span>';
+                            pag.appendChild(li);
+                        }
+                    }
+                    pag.appendChild(pageBtn("›", win.currentPage + 1, win.currentPage === totalPages));
+                };
+
+                win.showValueData = function(colIdx, value) {
+                    win.document.getElementById('overviewContent').style.display = 'none';
+                    win.document.getElementById('overviewPagination').style.display = 'none';
+                    win.document.getElementById('valueDataModal').style.display = 'block';
+                    value = decodeURIComponent(value);
+                    const rows = win.data.filter(row => {
+                        let val = row[colIdx] || "";
+                        val = val.replace(/^"(.*)"$/, '$1');
+                        return val === value;
+                    });
+                    let html = '<h3>Rows with <b>' + win.headers[colIdx] + ' = "' + (value === "" ? "(empty)" : value) + '"</b></h3>';
+                    html += '<div style="overflow-x:auto;"><table class="table table-bordered table-sm data-table"><thead><tr>';
+                    win.headers.forEach(h => html += '<th>' + h + '</th>');
+                    html += '</tr></thead><tbody>';
+                    rows.forEach(row => {
+                        html += '<tr>';
+                        row.forEach(cell => html += '<td>' + (cell == null ? "" : cell.replace(/^"(.*)"$/, '$1')) + '</td>');
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    win.document.getElementById('valueDataTable').innerHTML = html;
+                };
+
+                win.document.getElementById('columnSelectOverview').onchange = function () {
+                    win.currentColIdx = parseInt(this.value);
+                    win.currentPage = 1;
+                    win.document.getElementById('overviewContent').style.display = 'block';
+                    win.document.getElementById('overviewPagination').style.display = 'flex';
+                    win.document.getElementById('valueDataModal').style.display = 'none';
+                    win.renderOverview();
+                };
+
+                win.document.getElementById('overviewContent').addEventListener('click', function (e) {
+                    if (e.target.classList.contains('value-item')) {
+                        const colIdx = parseInt(e.target.getAttribute('data-col'));
+                        const value = e.target.getAttribute('data-value');
+                        win.showValueData(colIdx, value);
+                    }
+                });
+
+                win.document.getElementById('backBtn').onclick = function () {
+                    win.document.getElementById('valueDataModal').style.display = 'none';
+                    win.document.getElementById('overviewContent').style.display = 'block';
+                    win.document.getElementById('overviewPagination').style.display = 'flex';
+                };
+
+                win.renderOverview();
+            };
+        };
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
