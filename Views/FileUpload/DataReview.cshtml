@@ -7,6 +7,7 @@
 <!DOCTYPE html>
 <html>
 
+
 <head>
     <meta charset="utf-8" />
     <title>Data Review</title>
@@ -142,7 +143,7 @@
                     </div>
                 </div>
                 <div class="mr-2">
-                    <span style="font-size:0.95rem;">Harga (Rp)</span>
+                    <span style="font-size:0.95rem;">Harga Satuan Unit(Rp)</span>
                     <input class="form-control form-control-sm w-auto" id="inputHarga" type="number" placeholder="Harga (Rp)" min="0" />
                 </div>
                 <div class="mr-2">
@@ -796,9 +797,9 @@
                 location: "location",
                 u_type: "u_type",
                 department: "department",
-                acquisition_methode: "acquisition_methode",
+                acquisition_methode: "acquisition_method",
                 install_status: "install_status",
-                sub_status: "sub_status",
+                sub_status: "substatus",
                 asset_function: "asset_function",
                 sys_created_by: "sys_created_by",
                 u_creation_date: "u_creation_date"
@@ -929,15 +930,16 @@
                     `<b>Hasil Filter:</b> ${filtered.length} device<br>
                     <b>Durasi:</b> ${durasi} ${typePembayaran}<br>
                     <b>Total Harga:</b> Rp ${totalHarga.toLocaleString("id-ID")}<br>
-                    <b>Rumus:</b> <code>Total Harga = Harga x Durasi x Jumlah Device</code><br>
-                    <b>Perhitungan:</b> <code>Rp ${harga.toLocaleString("id-ID")} x ${durasi} x ${filtered.length} = Rp ${totalHarga.toLocaleString("id-ID")}</code><br>
                     <b>Rincian Filter:</b> ${Object.entries(filters).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}`).join(", ") || "Semua"}<br>
-                    <b>Periode:</b> ${startDateStr} s/d ${endDateStr}`;
+                    <b>Periode:</b> ${startDateStr} s/d ${endDateStr}<br>
+                    <b>Rumus:</b> <code>Total Harga = Harga x Durasi x Jumlah Device</code><br>
+                    <b>Perhitungan:</b> <code>Rp ${harga.toLocaleString("id-ID")} x ${durasi} x ${filtered.length} = Rp ${totalHarga.toLocaleString("id-ID")}</code>`;
             };
         })();
     </script>
 
     <script>
+
         $(function () {
             $('#startDatePicker').datetimepicker({
                 format: 'D-MM-YYYY HH:mm:ss',
