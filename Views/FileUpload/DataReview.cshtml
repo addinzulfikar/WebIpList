@@ -9,14 +9,14 @@
 
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <title>Data Review</title>
     <!-- Bootstrap 4 CDN, bisa diganti ke lokal jika perlu -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
     <!-- Tempus Dominus Bootstrap 4 (Datetimepicker) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/css/tempusdominus-bootstrap-4.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
-    
+
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -73,9 +73,6 @@
             color: #2563eb;
             font-weight: 500;
         }
-
-
-
     </style>
 </head>
 <body>
@@ -86,6 +83,14 @@
             </div>
             <div class="col-12 col-md-6 text-md-right text-center">
                 <img src="/Content/Images/pama-logo.png" alt="PAMA" class="header-logo" />
+            </div>
+        </div>
+        <div class="mr-2 align-self-end">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="fixedLeasingCheckbox">
+                <label class="form-check-label" for="fixedLeasingCheckbox" style="font-size:0.95rem;">
+                    Harga Leasing Sudah Ditetapkan (Fixed)
+                </label>
             </div>
         </div>
         <div class="row mb-3">
@@ -142,9 +147,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="mr-2">
-                    <span style="font-size:0.95rem;">Harga Satuan Unit(Rp)</span>
-                    <input class="form-control form-control-sm w-auto" id="inputHarga" type="number" placeholder="Harga (Rp)" min="0" />
+                <div class="mr-2" id="hargaPerUtypeBox">
+                    <span style="font-size:0.95rem;">Harga Satuan per u_type (Rp)</span>
+                    <div id="hargaInputs"></div>
                 </div>
                 <div class="mr-2">
                     <span style="font-size:0.95rem;">Tipe Pembayaran</span>
@@ -167,7 +172,7 @@
             </div>
         </div>
         <div class="row mb-3">
-            
+
             <div class="col-12 d-flex flex-wrap align-items-center table-filter-box">
                 <label class="mb-0 font-weight-bold w-100">Data List:</label>
                 <select class="form-control form-control-sm w-auto mr-2" id="columnSelect">
@@ -242,540 +247,540 @@
     </div>
 
     <script>
-        // Data from server
-
-        const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
-        const rows = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(rows));
-        let filteredRows = rows.slice();
-        const pageSize = 15;
-        let currentPage = 1;
-
-        function updateDataCount() {
-            document.getElementById("dataCount").textContent = filteredRows.length;
-        }
-
-        function renderTable(page) {
-            const tbody = document.querySelector("#dataTable tbody");
-            tbody.innerHTML = "";
-            const start = (page - 1) * pageSize;
-            const end = Math.min(start + pageSize, filteredRows.length);
-            for (let i = start; i < end; i++) {
-                const tr = document.createElement("tr");
-                for (let cell of filteredRows[i]) {
-                    const td = document.createElement("td");
-                    // Hanya tampilkan "" jika benar-benar kosong, selain itu hilangkan tanda kutip di awal/akhir
-                    td.textContent = (cell == null || cell === "" || cell === "\"\"") ? "\"\"" : cell.replace(/^"(.*)"$/, '$1');
-                    tr.appendChild(td);
-                }
-                tbody.appendChild(tr);
-            }
-            updateDataCount();
-        }
-
-        function renderPagination() {
-            const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-            const pag = document.getElementById("pagination");
-            pag.innerHTML = "";
-
-            function pageBtn(label, page, disabled, active) {
-                const li = document.createElement("li");
-                li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
-                const btn = document.createElement("button");
-                btn.className = "page-link";
-                btn.textContent = label;
-                btn.disabled = disabled;
-                btn.onclick = function () {
-                    if (!disabled) {
-                        currentPage = page;
-                        renderTable(currentPage);
-                        renderPagination();
-                    }
-                };
-                li.appendChild(btn);
-                return li;
-            }
-
-            pag.appendChild(pageBtn("�", currentPage - 1, currentPage === 1));
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-                    pag.appendChild(pageBtn(i, i, false, i === currentPage));
-                } else if (i === 2 && currentPage > 4) {
-                    const li = document.createElement("li");
-                    li.className = "page-item disabled";
-                    li.innerHTML = '<span class="page-link">...</span>';
-                    pag.appendChild(li);
-                } else if (i === totalPages - 1 && currentPage < totalPages - 3) {
-                    const li = document.createElement("li");
-                    li.className = "page-item disabled";
-                    li.innerHTML = '<span class="page-link">...</span>';
-                    pag.appendChild(li);
-                }
-            }
-            pag.appendChild(pageBtn("�", currentPage + 1, currentPage === totalPages));
-        }
-
-        function parseDate(val) {
-            if (!val) return null;
-            // Format: dd-MM-yyyy HH:mm:ss
-            var d = /^(\d{2})-(\d{2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(val);
-            if (d) return new Date(`${d[3]}-${d[2]}-${d[1]}T${d[4]}:${d[5]}:${d[6]}`);
-            // Format: dd-MM-yyyy
-            d = /^(\d{2})-(\d{2})-(\d{4})$/.exec(val);
-            if (d) return new Date(`${d[3]}-${d[2]}-${d[1]}`);
-            // Fallback: try Date constructor
-            var date = new Date(val);
-            if (!isNaN(date.getTime())) return date;
-            return null;
-        }
-
-        function sortRows(rows, colIdx, order) {
-            return rows.slice().sort(function (a, b) {
-                let va = a[colIdx] || "";
-                let vb = b[colIdx] || "";
-                let da = parseDate(va);
-                let db = parseDate(vb);
-                if (da && db) {
-                    if (da < db) return order === "asc" ? -1 : 1;
-                    if (da > db) return order === "asc" ? 1 : -1;
-                    return 0;
-                }
-                // Fallback: string compare
-                if (va < vb) return order === "asc" ? -1 : 1;
-                if (va > vb) return order === "asc" ? 1 : -1;
-                return 0;
-            });
-        }
-
-
-
-        function filterTable() {
-            const filter = document.getElementById("tableFilter").value.toLowerCase();
-            const colIdx = parseInt(document.getElementById("columnSelect").value);
-            const sortCol = document.getElementById("sortColumn").value;
-            const sortOrder = document.getElementById("sortOrder").value;
-
-            // Filter
-            filteredRows = rows.filter(row => {
-                const cell = row[colIdx] || "";
-                if (filter === "") return true;
-                if (filter === "\"\"") return (cell == null || cell === "" || cell === "\"\"");
-                return cell.toLowerCase().indexOf(filter) > -1;
-            });
-
-            // Sort jika dipilih
-            if (sortCol !== "") {
-                filteredRows = sortRows(filteredRows, parseInt(sortCol), sortOrder);
-            }
-
-            currentPage = 1;
-            renderTable(currentPage);
-            renderPagination();
-        }
-
-        document.getElementById("tableFilter").addEventListener("keyup", filterTable);
-        document.getElementById("columnSelect").addEventListener("change", filterTable);
-        document.getElementById("sortColumn").addEventListener("change", filterTable);
-        document.getElementById("sortOrder").addEventListener("change", filterTable);
-        document.getElementById("exportBtn").onclick = function () {
-            function escapeCsv(val) {
-                // Jika null/undefined/empty string, tampilkan ""
-                if (val == null || val === "") return "\"\"";
-                // Selain itu, tampilkan apa adanya
-                return val;
-            }
-
-            let csv = "";
-            // Header
-            const ths = document.querySelectorAll("#dataTable th");
-            csv += Array.from(ths).map(th => escapeCsv(th.textContent)).join(",") + "\n";
-            // Data
-            for (let row of filteredRows) {
-                csv += row.map(cell => escapeCsv(cell)).join(",") + "\n";
-            }
-            const blob = new Blob([csv], { type: "text/csv" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "data_review.csv";
-            link.click();
-        };
-
-
-
-        // Initial render
-        filterTable();
-    </script>
-
-    <script>
-        document.getElementById("overviewBtn").onclick = function () {
-    const win = window.open("", "_blank");
-    if (!win) return;
-
-    const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
-    const data = filteredRows.length ? filteredRows : rows;
-    const pageSize = 15; // Jumlah value unik per halaman
-
-    win.document.write(`
-        <html>
-        <head>
-            <title>Data Overview</title>
-            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 24px; }
-                .topbar { margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
-                .value-list { margin-bottom: 32px; }
-                .value-item { cursor: pointer; color: #2563eb; }
-                .value-item:hover { text-decoration: underline; }
-                .data-table { margin-top: 16px; }
-                .close-btn { margin-bottom: 16px; }
-                .pagination { margin: 0; }
-                .pagination .active .page-link { background: #222; color: #fff; }
-                .pagination .disabled .page-link { color: #bbb; background: #eee; }
-            </style>
-        </head>
-        <body>
-            <h1>Data Overview</h1>
-            <div class="topbar">
-                <label for="columnSelectOverview" class="mb-0 font-weight-bold">Select Column:</label>
-                <select class="form-control form-control-sm w-auto" id="columnSelectOverview"></select>
-            </div>
-            <div id="overviewContent"></div>
-            <nav>
-                <ul class="pagination pagination-sm" id="overviewPagination"></ul>
-            </nav>
-            <div id="valueDataModal" style="display:none;">
-                <button class="btn btn-secondary btn-sm close-btn" id="backBtn">Back</button>
-                <div id="valueDataTable"></div>
-            </div>
-        </body>
-        </html>
-    `);
-
-    win.document.close();
-
-    win.onload = function () {
-        // Data
-        win.headers = headers;
-        win.data = data;
-        win.pageSize = pageSize;
-        win.currentColIdx = 0;
-        win.currentPage = 1;
-        win.valueList = [];
-
-        // Populate column dropdown
-        const colSelect = win.document.getElementById('columnSelectOverview');
-        win.headers.forEach((h, i) => {
-            const opt = win.document.createElement('option');
-            opt.value = i;
-            opt.textContent = h;
-            colSelect.appendChild(opt);
-        });
-
-        // Build value list for selected column
-        win.buildValueList = function () {
-            const colIdx = win.currentColIdx;
-            const counts = {};
-            win.data.forEach(row => {
-                let val = row[colIdx] || "";
-                val = val.replace(/^"(.*)"$/, '$1');
-                counts[val] = (counts[val] || 0) + 1;
-            });
-            win.valueList = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-        };
-
-        // Render value list with pagination
-        win.renderOverview = function () {
-            win.buildValueList();
-            const totalPages = Math.max(1, Math.ceil(win.valueList.length / win.pageSize));
-            const start = (win.currentPage - 1) * win.pageSize;
-            const end = Math.min(start + win.pageSize, win.valueList.length);
-            let html = '<div class="value-list">';
-            html += '<h2>' + win.headers[win.currentColIdx] + '</h2>';
-            html += '<ul class="list-group">';
-            for (let i = start; i < end; i++) {
-                const [val, count] = win.valueList[i];
-                html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
-                html += '<span class="value-item" data-col="' + win.currentColIdx + '" data-value="' + encodeURIComponent(val) + '">' + (val === "" ? "(empty)" : val) + '</span>';
-                html += '<span class="badge badge-primary badge-pill">' + count + '</span>';
-                html += '</li>';
-            }
-            html += '</ul></div>';
-            win.document.getElementById('overviewContent').innerHTML = html;
-
-            // Pagination
-            const pag = win.document.getElementById('overviewPagination');
-            pag.innerHTML = "";
-            function pageBtn(label, page, disabled, active) {
-                const li = win.document.createElement("li");
-                li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
-                const btn = win.document.createElement("button");
-                btn.className = "page-link";
-                btn.textContent = label;
-                btn.disabled = disabled;
-                btn.onclick = function () {
-                    if (!disabled) {
-                        win.currentPage = page;
-                        win.renderOverview();
-                    }
-                };
-                li.appendChild(btn);
-                return li;
-            }
-            pag.appendChild(pageBtn("�", win.currentPage - 1, win.currentPage === 1));
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= win.currentPage - 2 && i <= win.currentPage + 2)) {
-                    pag.appendChild(pageBtn(i, i, false, i === win.currentPage));
-                } else if (i === 2 && win.currentPage > 4) {
-                    const li = win.document.createElement("li");
-                    li.className = "page-item disabled";
-                    li.innerHTML = '<span class="page-link">...</span>';
-                    pag.appendChild(li);
-                } else if (i === totalPages - 1 && win.currentPage < totalPages - 3) {
-                    const li = win.document.createElement("li");
-                    li.className = "page-item disabled";
-                    li.innerHTML = '<span class="page-link">...</span>';
-                    pag.appendChild(li);
-                }
-            }
-            pag.appendChild(pageBtn("�", win.currentPage + 1, win.currentPage === totalPages));
-        };
-
-        // Show rows for a specific value in a column
-        win.showValueData = function(colIdx, value) {
-            win.document.getElementById('overviewContent').style.display = 'none';
-            win.document.getElementById('overviewPagination').style.display = 'none';
-            win.document.getElementById('valueDataModal').style.display = 'block';
-            value = decodeURIComponent(value);
-            const rows = win.data.filter(row => {
-                let val = row[colIdx] || "";
-                val = val.replace(/^"(.*)"$/, '$1');
-                return val === value;
-            });
-            let html = '<h3>Rows with <b>' + win.headers[colIdx] + ' = "' + (value === "" ? "(empty)" : value) + '"</b></h3>';
-            html += '<div style="overflow-x:auto;"><table class="table table-bordered table-sm data-table"><thead><tr>';
-            win.headers.forEach(h => html += '<th>' + h + '</th>');
-            html += '</tr></thead><tbody>';
-            rows.forEach(row => {
-                html += '<tr>';
-                row.forEach(cell => html += '<td>' + (cell == null ? "" : cell.replace(/^"(.*)"$/, '$1')) + '</td>');
-                html += '</tr>';
-            });
-            html += '</tbody></table></div>';
-            win.document.getElementById('valueDataTable').innerHTML = html;
-        };
-
-        // Event: change column
-        win.document.getElementById('columnSelectOverview').onchange = function () {
-            win.currentColIdx = parseInt(this.value);
-            win.currentPage = 1;
-            win.document.getElementById('overviewContent').style.display = 'block';
-            win.document.getElementById('overviewPagination').style.display = 'flex';
-            win.document.getElementById('valueDataModal').style.display = 'none';
-            win.renderOverview();
-        };
-
-        // Event delegation for value-item clicks
-        win.document.getElementById('overviewContent').addEventListener('click', function (e) {
-            if (e.target.classList.contains('value-item')) {
-                const colIdx = parseInt(e.target.getAttribute('data-col'));
-                const value = e.target.getAttribute('data-value');
-                win.showValueData(colIdx, value);
-            }
-        });
-
-        // Back button
-        win.document.getElementById('backBtn').onclick = function () {
-            win.document.getElementById('valueDataModal').style.display = 'none';
-            win.document.getElementById('overviewContent').style.display = 'block';
-            win.document.getElementById('overviewPagination').style.display = 'flex';
-        };
-
-        // Initial render
-        win.renderOverview();
-    };
-};
-    </script>
-
-
-
-    <script>
-        document.getElementById("overviewMenuItem").onclick = function (e) {
-            e.preventDefault();
-            const win = window.open("", "_blank");
-            if (!win) return;
+            // Data from server
 
             const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
-            const data = filteredRows.length ? filteredRows : rows;
-            const pageSize = 15; // Number of unique values per page
+            const rows = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(rows));
+            let filteredRows = rows.slice();
+            const pageSize = 15;
+            let currentPage = 1;
 
-            win.document.write(`
-                <html>
-                <head>
-                    <title>Data Overview</title>
-                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-                    <style>
-                        body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 24px; }
-                        .topbar { margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
-                        .value-list { margin-bottom: 32px; }
-                        .value-item { cursor: pointer; color: #2563eb; }
-                        .value-item:hover { text-decoration: underline; }
-                        .data-table { margin-top: 16px; }
-                        .close-btn { margin-bottom: 16px; }
-                        .pagination { margin: 0; }
-                        .pagination .active .page-link { background: #222; color: #fff; }
-                        .pagination .disabled .page-link { color: #bbb; background: #eee; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Data Overview</h1>
-                    <div class="topbar">
-                        <label for="columnSelectOverview" class="mb-0 font-weight-bold">Select Column:</label>
-                        <select class="form-control form-control-sm w-auto" id="columnSelectOverview"></select>
-                    </div>
-                    <div id="overviewContent"></div>
-                    <nav>
-                        <ul class="pagination pagination-sm" id="overviewPagination"></ul>
-                    </nav>
-                    <div id="valueDataModal" style="display:none;">
-                        <button class="btn btn-secondary btn-sm close-btn" id="backBtn">Back</button>
-                        <div id="valueDataTable"></div>
-                    </div>
-                </body>
-                </html>
-            `);
+            function updateDataCount() {
+                document.getElementById("dataCount").textContent = filteredRows.length;
+            }
 
-            win.document.close();
-
-            win.onload = function () {
-                win.headers = headers;
-                win.data = data;
-                win.pageSize = pageSize;
-                win.currentColIdx = 0;
-                win.currentPage = 1;
-                win.valueList = [];
-
-                const colSelect = win.document.getElementById('columnSelectOverview');
-                win.headers.forEach((h, i) => {
-                    const opt = win.document.createElement('option');
-                    opt.value = i;
-                    opt.textContent = h;
-                    colSelect.appendChild(opt);
-                });
-
-                win.buildValueList = function () {
-                    const colIdx = win.currentColIdx;
-                    const counts = {};
-                    win.data.forEach(row => {
-                        let val = row[colIdx] || "";
-                        val = val.replace(/^"(.*)"$/, '$1');
-                        counts[val] = (counts[val] || 0) + 1;
-                    });
-                    win.valueList = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                };
-
-                win.renderOverview = function () {
-                    win.buildValueList();
-                    const totalPages = Math.max(1, Math.ceil(win.valueList.length / win.pageSize));
-                    const start = (win.currentPage - 1) * win.pageSize;
-                    const end = Math.min(start + win.pageSize, win.valueList.length);
-                    let html = '<div class="value-list">';
-                    html += '<h2>' + win.headers[win.currentColIdx] + '</h2>';
-                    html += '<ul class="list-group">';
-                    for (let i = start; i < end; i++) {
-                        const [val, count] = win.valueList[i];
-                        html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
-                        html += '<span class="value-item" data-col="' + win.currentColIdx + '" data-value="' + encodeURIComponent(val) + '">' + (val === "" ? "(empty)" : val) + '</span>';
-                        html += '<span class="badge badge-primary badge-pill">' + count + '</span>';
-                        html += '</li>';
+            function renderTable(page) {
+                const tbody = document.querySelector("#dataTable tbody");
+                tbody.innerHTML = "";
+                const start = (page - 1) * pageSize;
+                const end = Math.min(start + pageSize, filteredRows.length);
+                for (let i = start; i < end; i++) {
+                    const tr = document.createElement("tr");
+                    for (let cell of filteredRows[i]) {
+                        const td = document.createElement("td");
+                        // Hanya tampilkan "" jika benar-benar kosong, selain itu hilangkan tanda kutip di awal/akhir
+                        td.textContent = (cell == null || cell === "" || cell === "\"\"") ? "\"\"" : cell.replace(/^"(.*)"$/, '$1');
+                        tr.appendChild(td);
                     }
-                    html += '</ul></div>';
-                    win.document.getElementById('overviewContent').innerHTML = html;
+                    tbody.appendChild(tr);
+                }
+                updateDataCount();
+            }
 
-                    const pag = win.document.getElementById('overviewPagination');
-                    pag.innerHTML = "";
-                    function pageBtn(label, page, disabled, active) {
-                        const li = win.document.createElement("li");
-                        li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
-                        const btn = win.document.createElement("button");
-                        btn.className = "page-link";
-                        btn.textContent = label;
-                        btn.disabled = disabled;
-                        btn.onclick = function () {
-                            if (!disabled) {
-                                win.currentPage = page;
-                                win.renderOverview();
-                            }
-                        };
-                        li.appendChild(btn);
-                        return li;
-                    }
-                    pag.appendChild(pageBtn("‹", win.currentPage - 1, win.currentPage === 1));
-                    for (let i = 1; i <= totalPages; i++) {
-                        if (i === 1 || i === totalPages || (i >= win.currentPage - 2 && i <= win.currentPage + 2)) {
-                            pag.appendChild(pageBtn(i, i, false, i === win.currentPage));
-                        } else if (i === 2 && win.currentPage > 4) {
-                            const li = win.document.createElement("li");
-                            li.className = "page-item disabled";
-                            li.innerHTML = '<span class="page-link">...</span>';
-                            pag.appendChild(li);
-                        } else if (i === totalPages - 1 && win.currentPage < totalPages - 3) {
-                            const li = win.document.createElement("li");
-                            li.className = "page-item disabled";
-                            li.innerHTML = '<span class="page-link">...</span>';
-                            pag.appendChild(li);
+            function renderPagination() {
+                const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+                const pag = document.getElementById("pagination");
+                pag.innerHTML = "";
+
+                function pageBtn(label, page, disabled, active) {
+                    const li = document.createElement("li");
+                    li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
+                    const btn = document.createElement("button");
+                    btn.className = "page-link";
+                    btn.textContent = label;
+                    btn.disabled = disabled;
+                    btn.onclick = function () {
+                        if (!disabled) {
+                            currentPage = page;
+                            renderTable(currentPage);
+                            renderPagination();
                         }
+                    };
+                    li.appendChild(btn);
+                    return li;
+                }
+
+                pag.appendChild(pageBtn("<", currentPage - 1, currentPage === 1));
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                        pag.appendChild(pageBtn(i, i, false, i === currentPage));
+                    } else if (i === 2 && currentPage > 4) {
+                        const li = document.createElement("li");
+                        li.className = "page-item disabled";
+                        li.innerHTML = '<span class="page-link">...</span>';
+                        pag.appendChild(li);
+                    } else if (i === totalPages - 1 && currentPage < totalPages - 3) {
+                        const li = document.createElement("li");
+                        li.className = "page-item disabled";
+                        li.innerHTML = '<span class="page-link">...</span>';
+                        pag.appendChild(li);
                     }
-                    pag.appendChild(pageBtn("›", win.currentPage + 1, win.currentPage === totalPages));
-                };
+                }
+                pag.appendChild(pageBtn(">", currentPage + 1, currentPage === totalPages));
+            }
 
-                win.showValueData = function(colIdx, value) {
-                    win.document.getElementById('overviewContent').style.display = 'none';
-                    win.document.getElementById('overviewPagination').style.display = 'none';
-                    win.document.getElementById('valueDataModal').style.display = 'block';
-                    value = decodeURIComponent(value);
-                    const rows = win.data.filter(row => {
-                        let val = row[colIdx] || "";
-                        val = val.replace(/^"(.*)"$/, '$1');
-                        return val === value;
-                    });
-                    let html = '<h3>Rows with <b>' + win.headers[colIdx] + ' = "' + (value === "" ? "(empty)" : value) + '"</b></h3>';
-                    html += '<div style="overflow-x:auto;"><table class="table table-bordered table-sm data-table"><thead><tr>';
-                    win.headers.forEach(h => html += '<th>' + h + '</th>');
-                    html += '</tr></thead><tbody>';
-                    rows.forEach(row => {
-                        html += '<tr>';
-                        row.forEach(cell => html += '<td>' + (cell == null ? "" : cell.replace(/^"(.*)"$/, '$1')) + '</td>');
-                        html += '</tr>';
-                    });
-                    html += '</tbody></table></div>';
-                    win.document.getElementById('valueDataTable').innerHTML = html;
-                };
+            function parseDate(val) {
+                if (!val) return null;
+                // Format: dd-MM-yyyy HH:mm:ss
+                var d = /^(\d{2})-(\d{2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(val);
+                if (d) return new Date(`${d[3]}-${d[2]}-${d[1]}T${d[4]}:${d[5]}:${d[6]}`);
+                // Format: dd-MM-yyyy
+                d = /^(\d{2})-(\d{2})-(\d{4})$/.exec(val);
+                if (d) return new Date(`${d[3]}-${d[2]}-${d[1]}`);
+                // Fallback: try Date constructor
+                var date = new Date(val);
+                if (!isNaN(date.getTime())) return date;
+                return null;
+            }
 
-                win.document.getElementById('columnSelectOverview').onchange = function () {
-                    win.currentColIdx = parseInt(this.value);
-                    win.currentPage = 1;
-                    win.document.getElementById('overviewContent').style.display = 'block';
-                    win.document.getElementById('overviewPagination').style.display = 'flex';
-                    win.document.getElementById('valueDataModal').style.display = 'none';
-                    win.renderOverview();
-                };
-
-                win.document.getElementById('overviewContent').addEventListener('click', function (e) {
-                    if (e.target.classList.contains('value-item')) {
-                        const colIdx = parseInt(e.target.getAttribute('data-col'));
-                        const value = e.target.getAttribute('data-value');
-                        win.showValueData(colIdx, value);
+            function sortRows(rows, colIdx, order) {
+                return rows.slice().sort(function (a, b) {
+                    let va = a[colIdx] || "";
+                    let vb = b[colIdx] || "";
+                    let da = parseDate(va);
+                    let db = parseDate(vb);
+                    if (da && db) {
+                        if (da < db) return order === "asc" ? -1 : 1;
+                        if (da > db) return order === "asc" ? 1 : -1;
+                        return 0;
                     }
+                    // Fallback: string compare
+                    if (va < vb) return order === "asc" ? -1 : 1;
+                    if (va > vb) return order === "asc" ? 1 : -1;
+                    return 0;
+                });
+            }
+
+
+
+            function filterTable() {
+                const filter = document.getElementById("tableFilter").value.toLowerCase();
+                const colIdx = parseInt(document.getElementById("columnSelect").value);
+                const sortCol = document.getElementById("sortColumn").value;
+                const sortOrder = document.getElementById("sortOrder").value;
+
+                // Filter
+                filteredRows = rows.filter(row => {
+                    const cell = row[colIdx] || "";
+                    if (filter === "") return true;
+                    if (filter === "\"\"") return (cell == null || cell === "" || cell === "\"\"");
+                    return cell.toLowerCase().indexOf(filter) > -1;
                 });
 
-                win.document.getElementById('backBtn').onclick = function () {
-                    win.document.getElementById('valueDataModal').style.display = 'none';
-                    win.document.getElementById('overviewContent').style.display = 'block';
-                    win.document.getElementById('overviewPagination').style.display = 'flex';
-                };
+                // Sort jika dipilih
+                if (sortCol !== "") {
+                    filteredRows = sortRows(filteredRows, parseInt(sortCol), sortOrder);
+                }
 
+                currentPage = 1;
+                renderTable(currentPage);
+                renderPagination();
+            }
+
+            document.getElementById("tableFilter").addEventListener("keyup", filterTable);
+            document.getElementById("columnSelect").addEventListener("change", filterTable);
+            document.getElementById("sortColumn").addEventListener("change", filterTable);
+            document.getElementById("sortOrder").addEventListener("change", filterTable);
+            document.getElementById("exportBtn").onclick = function () {
+                function escapeCsv(val) {
+                    // Jika null/undefined/empty string, tampilkan ""
+                    if (val == null || val === "") return "\"\"";
+                    // Selain itu, tampilkan apa adanya
+                    return val;
+                }
+
+                let csv = "";
+                // Header
+                const ths = document.querySelectorAll("#dataTable th");
+                csv += Array.from(ths).map(th => escapeCsv(th.textContent)).join(",") + "\n";
+                // Data
+                for (let row of filteredRows) {
+                    csv += row.map(cell => escapeCsv(cell)).join(",") + "\n";
+                }
+                const blob = new Blob([csv], { type: "text/csv" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "data_review.csv";
+                link.click();
+            };
+
+
+
+            // Initial render
+            filterTable();
+    </script>
+
+    <script>
+            document.getElementById("overviewBtn").onclick = function () {
+        const win = window.open("", "_blank");
+        if (!win) return;
+
+        const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
+        const data = filteredRows.length ? filteredRows : rows;
+        const pageSize = 15; // Jumlah value unik per halaman
+
+        win.document.write(`
+            <html>
+            <head>
+                <title>Data Overview</title>
+                <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 24px; }
+                    .topbar { margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+                    .value-list { margin-bottom: 32px; }
+                    .value-item { cursor: pointer; color: #2563eb; }
+                    .value-item:hover { text-decoration: underline; }
+                    .data-table { margin-top: 16px; }
+                    .close-btn { margin-bottom: 16px; }
+                    .pagination { margin: 0; }
+                    .pagination .active .page-link { background: #222; color: #fff; }
+                    .pagination .disabled .page-link { color: #bbb; background: #eee; }
+                </style>
+            </head>
+            <body>
+                <h1>Data Overview</h1>
+                <div class="topbar">
+                    <label for="columnSelectOverview" class="mb-0 font-weight-bold">Select Column:</label>
+                    <select class="form-control form-control-sm w-auto" id="columnSelectOverview"></select>
+                </div>
+                <div id="overviewContent"></div>
+                <nav>
+                    <ul class="pagination pagination-sm" id="overviewPagination"></ul>
+                </nav>
+                <div id="valueDataModal" style="display:none;">
+                    <button class="btn btn-secondary btn-sm close-btn" id="backBtn">Back</button>
+                    <div id="valueDataTable"></div>
+                </div>
+            </body>
+            </html>
+        `);
+
+        win.document.close();
+
+        win.onload = function () {
+            // Data
+            win.headers = headers;
+            win.data = data;
+            win.pageSize = pageSize;
+            win.currentColIdx = 0;
+            win.currentPage = 1;
+            win.valueList = [];
+
+            // Populate column dropdown
+            const colSelect = win.document.getElementById('columnSelectOverview');
+            win.headers.forEach((h, i) => {
+                const opt = win.document.createElement('option');
+                opt.value = i;
+                opt.textContent = h;
+                colSelect.appendChild(opt);
+            });
+
+            // Build value list for selected column
+            win.buildValueList = function () {
+                const colIdx = win.currentColIdx;
+                const counts = {};
+                win.data.forEach(row => {
+                    let val = row[colIdx] || "";
+                    val = val.replace(/^"(.*)"$/, '$1');
+                    counts[val] = (counts[val] || 0) + 1;
+                });
+                win.valueList = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            };
+
+            // Render value list with pagination
+            win.renderOverview = function () {
+                win.buildValueList();
+                const totalPages = Math.max(1, Math.ceil(win.valueList.length / win.pageSize));
+                const start = (win.currentPage - 1) * win.pageSize;
+                const end = Math.min(start + win.pageSize, win.valueList.length);
+                let html = '<div class="value-list">';
+                html += '<h2>' + win.headers[win.currentColIdx] + '</h2>';
+                html += '<ul class="list-group">';
+                for (let i = start; i < end; i++) {
+                    const [val, count] = win.valueList[i];
+                    html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                    html += '<span class="value-item" data-col="' + win.currentColIdx + '" data-value="' + encodeURIComponent(val) + '">' + (val === "" ? "(empty)" : val) + '</span>';
+                    html += '<span class="badge badge-primary badge-pill">' + count + '</span>';
+                    html += '</li>';
+                }
+                html += '</ul></div>';
+                win.document.getElementById('overviewContent').innerHTML = html;
+
+                // Pagination
+                const pag = win.document.getElementById('overviewPagination');
+                pag.innerHTML = "";
+                function pageBtn(label, page, disabled, active) {
+                    const li = win.document.createElement("li");
+                    li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
+                    const btn = win.document.createElement("button");
+                    btn.className = "page-link";
+                    btn.textContent = label;
+                    btn.disabled = disabled;
+                    btn.onclick = function () {
+                        if (!disabled) {
+                            win.currentPage = page;
+                            win.renderOverview();
+                        }
+                    };
+                    li.appendChild(btn);
+                    return li;
+                }
+                pag.appendChild(pageBtn("�", win.currentPage - 1, win.currentPage === 1));
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= win.currentPage - 2 && i <= win.currentPage + 2)) {
+                        pag.appendChild(pageBtn(i, i, false, i === win.currentPage));
+                    } else if (i === 2 && win.currentPage > 4) {
+                        const li = win.document.createElement("li");
+                        li.className = "page-item disabled";
+                        li.innerHTML = '<span class="page-link">...</span>';
+                        pag.appendChild(li);
+                    } else if (i === totalPages - 1 && win.currentPage < totalPages - 3) {
+                        const li = win.document.createElement("li");
+                        li.className = "page-item disabled";
+                        li.innerHTML = '<span class="page-link">...</span>';
+                        pag.appendChild(li);
+                    }
+                }
+                pag.appendChild(pageBtn("�", win.currentPage + 1, win.currentPage === totalPages));
+            };
+
+            // Show rows for a specific value in a column
+            win.showValueData = function(colIdx, value) {
+                win.document.getElementById('overviewContent').style.display = 'none';
+                win.document.getElementById('overviewPagination').style.display = 'none';
+                win.document.getElementById('valueDataModal').style.display = 'block';
+                value = decodeURIComponent(value);
+                const rows = win.data.filter(row => {
+                    let val = row[colIdx] || "";
+                    val = val.replace(/^"(.*)"$/, '$1');
+                    return val === value;
+                });
+                let html = '<h3>Rows with <b>' + win.headers[colIdx] + ' = "' + (value === "" ? "(empty)" : value) + '"</b></h3>';
+                html += '<div style="overflow-x:auto;"><table class="table table-bordered table-sm data-table"><thead><tr>';
+                win.headers.forEach(h => html += '<th>' + h + '</th>');
+                html += '</tr></thead><tbody>';
+                rows.forEach(row => {
+                    html += '<tr>';
+                    row.forEach(cell => html += '<td>' + (cell == null ? "" : cell.replace(/^"(.*)"$/, '$1')) + '</td>');
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+                win.document.getElementById('valueDataTable').innerHTML = html;
+            };
+
+            // Event: change column
+            win.document.getElementById('columnSelectOverview').onchange = function () {
+                win.currentColIdx = parseInt(this.value);
+                win.currentPage = 1;
+                win.document.getElementById('overviewContent').style.display = 'block';
+                win.document.getElementById('overviewPagination').style.display = 'flex';
+                win.document.getElementById('valueDataModal').style.display = 'none';
                 win.renderOverview();
             };
+
+            // Event delegation for value-item clicks
+            win.document.getElementById('overviewContent').addEventListener('click', function (e) {
+                if (e.target.classList.contains('value-item')) {
+                    const colIdx = parseInt(e.target.getAttribute('data-col'));
+                    const value = e.target.getAttribute('data-value');
+                    win.showValueData(colIdx, value);
+                }
+            });
+
+            // Back button
+            win.document.getElementById('backBtn').onclick = function () {
+                win.document.getElementById('valueDataModal').style.display = 'none';
+                win.document.getElementById('overviewContent').style.display = 'block';
+                win.document.getElementById('overviewPagination').style.display = 'flex';
+            };
+
+            // Initial render
+            win.renderOverview();
         };
+    };
+    </script>
+
+
+
+    <script>
+            document.getElementById("overviewMenuItem").onclick = function (e) {
+                e.preventDefault();
+                const win = window.open("", "_blank");
+                if (!win) return;
+
+                const headers = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(headers));
+                const data = filteredRows.length ? filteredRows : rows;
+                const pageSize = 15; // Number of unique values per page
+
+                win.document.write(`
+                    <html>
+                    <head>
+                        <title>Data Overview</title>
+                        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+                        <style>
+                            body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 24px; }
+                            .topbar { margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+                            .value-list { margin-bottom: 32px; }
+                            .value-item { cursor: pointer; color: #2563eb; }
+                            .value-item:hover { text-decoration: underline; }
+                            .data-table { margin-top: 16px; }
+                            .close-btn { margin-bottom: 16px; }
+                            .pagination { margin: 0; }
+                            .pagination .active .page-link { background: #222; color: #fff; }
+                            .pagination .disabled .page-link { color: #bbb; background: #eee; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Data Overview</h1>
+                        <div class="topbar">
+                            <label for="columnSelectOverview" class="mb-0 font-weight-bold">Select Column:</label>
+                            <select class="form-control form-control-sm w-auto" id="columnSelectOverview"></select>
+                        </div>
+                        <div id="overviewContent"></div>
+                        <nav>
+                            <ul class="pagination pagination-sm" id="overviewPagination"></ul>
+                        </nav>
+                        <div id="valueDataModal" style="display:none;">
+                            <button class="btn btn-secondary btn-sm close-btn" id="backBtn">Back</button>
+                            <div id="valueDataTable"></div>
+                        </div>
+                    </body>
+                    </html>
+                `);
+
+                win.document.close();
+
+                win.onload = function () {
+                    win.headers = headers;
+                    win.data = data;
+                    win.pageSize = pageSize;
+                    win.currentColIdx = 0;
+                    win.currentPage = 1;
+                    win.valueList = [];
+
+                    const colSelect = win.document.getElementById('columnSelectOverview');
+                    win.headers.forEach((h, i) => {
+                        const opt = win.document.createElement('option');
+                        opt.value = i;
+                        opt.textContent = h;
+                        colSelect.appendChild(opt);
+                    });
+
+                    win.buildValueList = function () {
+                        const colIdx = win.currentColIdx;
+                        const counts = {};
+                        win.data.forEach(row => {
+                            let val = row[colIdx] || "";
+                            val = val.replace(/^"(.*)"$/, '$1');
+                            counts[val] = (counts[val] || 0) + 1;
+                        });
+                        win.valueList = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                    };
+
+                    win.renderOverview = function () {
+                        win.buildValueList();
+                        const totalPages = Math.max(1, Math.ceil(win.valueList.length / win.pageSize));
+                        const start = (win.currentPage - 1) * win.pageSize;
+                        const end = Math.min(start + win.pageSize, win.valueList.length);
+                        let html = '<div class="value-list">';
+                        html += '<h2>' + win.headers[win.currentColIdx] + '</h2>';
+                        html += '<ul class="list-group">';
+                        for (let i = start; i < end; i++) {
+                            const [val, count] = win.valueList[i];
+                            html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                            html += '<span class="value-item" data-col="' + win.currentColIdx + '" data-value="' + encodeURIComponent(val) + '">' + (val === "" ? "(empty)" : val) + '</span>';
+                            html += '<span class="badge badge-primary badge-pill">' + count + '</span>';
+                            html += '</li>';
+                        }
+                        html += '</ul></div>';
+                        win.document.getElementById('overviewContent').innerHTML = html;
+
+                        const pag = win.document.getElementById('overviewPagination');
+                        pag.innerHTML = "";
+                        function pageBtn(label, page, disabled, active) {
+                            const li = win.document.createElement("li");
+                            li.className = "page-item" + (disabled ? " disabled" : "") + (active ? " active" : "");
+                            const btn = win.document.createElement("button");
+                            btn.className = "page-link";
+                            btn.textContent = label;
+                            btn.disabled = disabled;
+                            btn.onclick = function () {
+                                if (!disabled) {
+                                    win.currentPage = page;
+                                    win.renderOverview();
+                                }
+                            };
+                            li.appendChild(btn);
+                            return li;
+                        }
+                        pag.appendChild(pageBtn("‹", win.currentPage - 1, win.currentPage === 1));
+                        for (let i = 1; i <= totalPages; i++) {
+                            if (i === 1 || i === totalPages || (i >= win.currentPage - 2 && i <= win.currentPage + 2)) {
+                                pag.appendChild(pageBtn(i, i, false, i === win.currentPage));
+                            } else if (i === 2 && win.currentPage > 4) {
+                                const li = win.document.createElement("li");
+                                li.className = "page-item disabled";
+                                li.innerHTML = '<span class="page-link">...</span>';
+                                pag.appendChild(li);
+                            } else if (i === totalPages - 1 && win.currentPage < totalPages - 3) {
+                                const li = win.document.createElement("li");
+                                li.className = "page-item disabled";
+                                li.innerHTML = '<span class="page-link">...</span>';
+                                pag.appendChild(li);
+                            }
+                        }
+                        pag.appendChild(pageBtn("›", win.currentPage + 1, win.currentPage === totalPages));
+                    };
+
+                    win.showValueData = function(colIdx, value) {
+                        win.document.getElementById('overviewContent').style.display = 'none';
+                        win.document.getElementById('overviewPagination').style.display = 'none';
+                        win.document.getElementById('valueDataModal').style.display = 'block';
+                        value = decodeURIComponent(value);
+                        const rows = win.data.filter(row => {
+                            let val = row[colIdx] || "";
+                            val = val.replace(/^"(.*)"$/, '$1');
+                            return val === value;
+                        });
+                        let html = '<h3>Rows with <b>' + win.headers[colIdx] + ' = "' + (value === "" ? "(empty)" : value) + '"</b></h3>';
+                        html += '<div style="overflow-x:auto;"><table class="table table-bordered table-sm data-table"><thead><tr>';
+                        win.headers.forEach(h => html += '<th>' + h + '</th>');
+                        html += '</tr></thead><tbody>';
+                        rows.forEach(row => {
+                            html += '<tr>';
+                            row.forEach(cell => html += '<td>' + (cell == null ? "" : cell.replace(/^"(.*)"$/, '$1')) + '</td>');
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table></div>';
+                        win.document.getElementById('valueDataTable').innerHTML = html;
+                    };
+
+                    win.document.getElementById('columnSelectOverview').onchange = function () {
+                        win.currentColIdx = parseInt(this.value);
+                        win.currentPage = 1;
+                        win.document.getElementById('overviewContent').style.display = 'block';
+                        win.document.getElementById('overviewPagination').style.display = 'flex';
+                        win.document.getElementById('valueDataModal').style.display = 'none';
+                        win.renderOverview();
+                    };
+
+                    win.document.getElementById('overviewContent').addEventListener('click', function (e) {
+                        if (e.target.classList.contains('value-item')) {
+                            const colIdx = parseInt(e.target.getAttribute('data-col'));
+                            const value = e.target.getAttribute('data-value');
+                            win.showValueData(colIdx, value);
+                        }
+                    });
+
+                    win.document.getElementById('backBtn').onclick = function () {
+                        win.document.getElementById('valueDataModal').style.display = 'none';
+                        win.document.getElementById('overviewContent').style.display = 'block';
+                        win.document.getElementById('overviewPagination').style.display = 'flex';
+                    };
+
+                    win.renderOverview();
+                };
+            };
     </script>
 
 
@@ -789,11 +794,12 @@
 
     <script>
         (function () {
-            // Pastikan headers dan rows sudah ada
+            // ... (semua kode dari awal sampai sebelum btnCalcHarga.onclick tidak berubah) ...
+            // Pastikan variabel global 'headers' dan 'rows' sudah ada dan terisi dari data Anda.
 
-
-            // Kolom yang digunakan
             const colMap = {
+                display_name: "display_name",
+                serial_number: "serial_number",
                 location: "location",
                 u_type: "u_type",
                 department: "department",
@@ -805,24 +811,30 @@
                 u_creation_date: "u_creation_date"
             };
 
-            // Dapatkan index kolom
             function getColIdx(name) {
+                if (!name) return -1;
                 return headers.findIndex(h => h && h.trim().toLowerCase() === name.toLowerCase());
             }
 
-            // Populate dropdown filter
+            const cleanVal = (val) => {
+                let v = val || "";
+                if (typeof v === 'string') {
+                    if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+                    return v.trim();
+                }
+                return v;
+            };
+
             function populateDropdown(id, colName, allowEmpty) {
                 const idx = getColIdx(colName);
                 const select = document.getElementById(id);
                 if (!select || idx === -1) {
-                    select.innerHTML = '<option value="">(Kolom tidak ditemukan)</option>';
+                    if (select) select.innerHTML = `<option value="">(Kolom '${colName}' tidak ditemukan)</option>`;
                     return;
                 }
                 const values = new Set();
                 rows.forEach(row => {
-                    let v = row[idx] || "";
-                    if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
-                    v = v.trim();
+                    let v = cleanVal(row[idx]);
                     if (allowEmpty || v !== "") values.add(v);
                 });
                 select.innerHTML = '<option value="">All</option>' +
@@ -831,7 +843,25 @@
                     ).join('');
             }
 
-            // Inisialisasi dropdown setelah DOM siap
+            function renderHargaInputs() {
+                const uTypeIdx = getColIdx(colMap.u_type);
+                if (uTypeIdx === -1) return;
+                const uTypes = new Set();
+                rows.forEach(row => {
+                    let v = cleanVal(row[uTypeIdx]);
+                    if (v !== "") uTypes.add(v);
+                });
+                const hargaInputs = Array.from(uTypes).sort().map(uType =>
+                    `<div class="input-group input-group-sm mb-1">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="min-width:80px;">${uType}</span>
+                        </div>
+                        <input type="number" class="form-control harga-utype-input" data-utype="${uType}" min="0" placeholder="Harga satuan (Rp)" />
+                    </div>`
+                ).join('');
+                document.getElementById("hargaInputs").innerHTML = hargaInputs;
+            }
+
             document.addEventListener("DOMContentLoaded", function () {
                 populateDropdown("filterLocation", colMap.location, false);
                 populateDropdown("filterUType", colMap.u_type, false);
@@ -841,29 +871,28 @@
                 populateDropdown("filterSubStatus", colMap.sub_status, true);
                 populateDropdown("filterAssetFunction", colMap.asset_function, true);
                 populateDropdown("filterSysCreatedBy", colMap.sys_created_by, false);
+                renderHargaInputs();
             });
 
-            // Parse tanggal format d-MM-yyyy HH:mm:ss
+
             function parseDate(val) {
                 if (!val) return null;
-                // Toleransi 1/2 digit hari/bulan
-                var d = /^(\d{1,2})-(\d{1,2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(val.trim());
+                const d = /^(\d{1,2})-(\d{1,2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(val.trim());
                 if (d) return new Date(`${d[3]}-${d[2].padStart(2, "0")}-${d[1].padStart(2, "0")}T${d[4]}:${d[5]}:${d[6]}`);
                 return null;
             }
 
-            // Kalkulasi selisih waktu
             function diffIn(val1, val2, type) {
                 const ms = val2 - val1;
-                if (type === "hari") return Math.ceil(ms / (1000 * 60 * 60 * 24));
-                if (type === "bulan") return Math.ceil(ms / (1000 * 60 * 60 * 24 * 30));
-                if (type === "tahun") return Math.ceil(ms / (1000 * 60 * 60 * 24 * 365));
+                if (type === "hari") return Math.ceil(ms / (1000 * 60 * 60 * 24)) || 1;
+                if (type === "bulan") return (val2.getFullYear() - val1.getFullYear()) * 12 + (val2.getMonth() - val1.getMonth()) + 1;
+                if (type === "tahun") return val2.getFullYear() - val1.getFullYear() + 1;
                 return 0;
             }
 
-            // Filter dan kalkulasi
+
             document.getElementById("btnCalcHarga").onclick = function () {
-                // Ambil filter
+                // ... (logika filter dan kalkulasi tidak berubah) ...
                 const filters = {
                     location: document.getElementById("filterLocation").value,
                     u_type: document.getElementById("filterUType").value,
@@ -876,67 +905,255 @@
                 };
                 const startDateStr = document.getElementById("inputStartDate").value;
                 const endDateStr = document.getElementById("inputEndDate").value;
-                const harga = parseFloat(document.getElementById("inputHarga").value);
                 const typePembayaran = document.getElementById("inputTypePembayaran").value;
 
-                // Validasi input
-                if (!startDateStr || !endDateStr || isNaN(harga) || harga <= 0) {
-                    alert("Isi tanggal mulai, tanggal akhir, dan harga dengan benar.");
+                if (!startDateStr || !endDateStr) {
+                    alert("Isi tanggal mulai dan tanggal akhir dengan benar.");
                     return;
                 }
                 const startDate = parseDate(startDateStr);
                 const endDate = parseDate(endDateStr);
                 if (!startDate || !endDate || endDate < startDate) {
-                    alert("Format tanggal salah atau tanggal akhir sebelum mulai.");
+                    alert("Format tanggal salah atau tanggal akhir sebelum tanggal mulai.");
                     return;
                 }
 
-                // Filter rows
                 const filtered = rows.filter(row => {
                     let match = true;
                     for (let key in filters) {
                         const filterVal = filters[key];
                         if (filterVal !== "") {
                             const idx = getColIdx(colMap[key]);
-                            let v = row[idx];
-                            if (typeof v === "undefined" || v === null) v = "";
-                            if (v.length > 1 && v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
-                            v = v.trim();
+                            if (idx === -1) continue;
+                            let v = cleanVal(row[idx]);
                             if (filterVal === "__EMPTY__") {
-                                // Hanya cocokkan value kosong
                                 if (v !== "") match = false;
                             } else {
                                 if (v !== filterVal) match = false;
                             }
                         }
                     }
-                    // u_creation_date harus dalam range
                     const idxDate = getColIdx(colMap.u_creation_date);
-                    let vDate = row[idxDate] || "";
-                    vDate = vDate.replace(/^"(.*)"$/, '$1').trim();
-                    const d = parseDate(vDate);
+                    if (idxDate === -1) return false;
+                    const d = parseDate(cleanVal(row[idxDate]));
                     if (!d || d < startDate || d > endDate) match = false;
                     return match;
                 });
 
-                // Kalkulasi
-                const durasi = diffIn(startDate, endDate, typePembayaran);
-                const totalHarga = harga * durasi * filtered.length;
+                const isFixedLeasing = document.getElementById("fixedLeasingCheckbox").checked;
 
-                // Tampilkan hasil
+                const hargaMap = {};
+                document.querySelectorAll('.harga-utype-input').forEach(input => {
+                    const utype = input.getAttribute('data-utype').trim();
+                    const val = parseFloat(input.value);
+                    if (!isNaN(val) && val > 0) hargaMap[utype] = val;
+                });
+
+                if (Object.keys(hargaMap).length === 0 && !isFixedLeasing) {
+                    alert("Isi harga satuan untuk minimal satu u_type, atau centang 'Fixed Leasing'.");
+                    return;
+                }
+
+                const durasi = diffIn(startDate, endDate, typePembayaran);
                 const resultBox = document.getElementById("calcResultBox");
+                let fixedHarga = 0;
+
+                if (isFixedLeasing) {
+                    document.querySelectorAll('.harga-utype-input').forEach(input => {
+                        const val = parseFloat(input.value);
+                        if (!isNaN(val) && val > 0 && fixedHarga === 0) fixedHarga = val;
+                    });
+                    if (fixedHarga === 0) {
+                        alert("Untuk 'Fixed Leasing', isi harga satuan pada salah satu input di atas.");
+                        return;
+                    }
+                }
+
+                let detailUnitTableHtml = '';
+                if (filtered.length > 0) {
+                    detailUnitTableHtml += `<div class="mt-4">
+                        <b>Tabel Rincian Aset (${filtered.length} unit):</b>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm table-striped mb-0">
+                                <thead style="background-color: #e9ecef;">
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>Nama/ID Aset</th>
+                                        <th>Serial Number</th>
+                                        <th>Tipe Unit</th>
+                                        <th>Lokasi</th>
+                                        <th>Departemen</th>
+                                        <th>Tgl Dibuat</th>
+                                        <th>Tanggal Akhir</th>
+                                        <th>Harga Satuan</th>
+                                        <th>Total Biaya Periode</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                    filtered.forEach((row, index) => {
+                        const displayName = cleanVal(row[getColIdx(colMap.display_name)] || 'N/A');
+                        const serialNumber = cleanVal(row[getColIdx(colMap.serial_number)] || 'N/A');
+                        const uType = cleanVal(row[getColIdx(colMap.u_type)]);
+                        const location = cleanVal(row[getColIdx(colMap.location)]);
+                        const department = cleanVal(row[getColIdx(colMap.department)]);
+                        const creationDate = cleanVal(row[getColIdx(colMap.u_creation_date)]);
+                        const hargaSatuan = hargaMap[uType] || 0;
+                        let biayaTotalUnit = 0;
+                        if (isFixedLeasing) {
+                            biayaTotalUnit = fixedHarga;
+                        } else {
+                            biayaTotalUnit = hargaSatuan * durasi;
+                        }
+                        detailUnitTableHtml += `<tr>
+                            <td>${index + 1}</td>
+                            <td>${displayName}</td>
+                            <td>${serialNumber}</td>
+                            <td>${uType}</td>
+                            <td>${location}</td>
+                            <td>${department}</td>
+                            <td>${creationDate}</td>
+                            <td>${endDateStr}</td>
+                            <td>Rp ${hargaSatuan.toLocaleString("id-ID")}</td>
+                            <td><b>Rp ${biayaTotalUnit.toLocaleString("id-ID")}</b></td>
+                        </tr>`;
+                    });
+                    detailUnitTableHtml += `</tbody></table></div></div>`;
+                }
+
                 resultBox.style.display = "block";
-                resultBox.innerHTML =
-                    `<b>Hasil Filter:</b> ${filtered.length} device<br>
-                    <b>Durasi:</b> ${durasi} ${typePembayaran}<br>
-                    <b>Total Harga:</b> Rp ${totalHarga.toLocaleString("id-ID")}<br>
-                    <b>Rincian Filter:</b> ${Object.entries(filters).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}`).join(", ") || "Semua"}<br>
-                    <b>Periode:</b> ${startDateStr} s/d ${endDateStr}<br>
-                    <b>Rumus:</b> <code>Total Harga = Harga x Durasi x Jumlah Device</code><br>
-                    <b>Perhitungan:</b> <code>Rp ${harga.toLocaleString("id-ID")} x ${durasi} x ${filtered.length} = Rp ${totalHarga.toLocaleString("id-ID")}</code>`;
+                let summaryHtml = '';
+
+                if (isFixedLeasing) {
+                    const totalDevice = filtered.length;
+                    const totalHarga = fixedHarga * totalDevice;
+                    summaryHtml = `<b>Mode:</b> Fixed Leasing<br>
+                                   <b>Hasil Filter:</b> ${totalDevice} device<br>
+                                   <b>Harga Leasing per Unit:</b> Rp ${fixedHarga.toLocaleString("id-ID")}<br>
+                                   <b>Total Harga:</b> <span style="font-size:1.2em;font-weight:bold;">Rp ${totalHarga.toLocaleString("id-ID")}</span><br>`;
+                } else {
+                    let totalHarga = 0;
+                    const countPerUtype = {};
+                    const detailArr = [];
+                    filtered.forEach(row => {
+                        let utype = cleanVal(row[getColIdx(colMap.u_type)]);
+                        countPerUtype[utype] = (countPerUtype[utype] || 0) + 1;
+                    });
+                    Object.keys(countPerUtype).forEach(utype => {
+                        const harga = hargaMap[utype] || 0;
+                        const jumlah = countPerUtype[utype];
+                        const subtotal = harga * durasi * jumlah;
+                        totalHarga += subtotal;
+                        detailArr.push({ utype, harga, durasi, jumlah, subtotal });
+                    });
+                    const breakdownStr = detailArr.map(d => `(${d.harga.toLocaleString("id-ID")}&times;${d.durasi}&times;${d.jumlah})`).join(" + ");
+                    const hargaRincian = Object.entries(hargaMap).map(([utype, harga]) => `${utype}: Rp ${harga.toLocaleString("id-ID")}`).join(", ");
+                    const countRincian = Object.entries(countPerUtype).map(([utype, count]) => `${utype}: ${count}`).join(", ");
+                    summaryHtml = `<b>Mode:</b> Per Satuan (${typePembayaran})<br>
+                                   <b>Hasil Filter:</b> ${filtered.length} device<br>
+                                   <b>Durasi:</b> ${durasi} ${typePembayaran}<br>
+                                   <b>Total Harga:</b> <span style="font-size:1.2em;font-weight:bold;">Rp ${totalHarga.toLocaleString("id-ID")}</span><br>
+                                   <hr>
+                                   <b>Rincian Harga Satuan:</b> ${hargaRincian || "Belum diisi"}<br>
+                                   <b>Rincian Jumlah Aset:</b> ${countRincian}<br>
+                                   <b>Perhitungan:</b> <code>&sum;(Harga &times; Durasi &times; Jumlah) = ${breakdownStr}</code>`;
+                }
+
+                const filterDetails = Object.entries(filters).filter(([k, v]) => v).map(([k, v]) => `<li>${k}: ${v === '__EMPTY__' ? '(empty)' : v}</li>`).join("");
+
+                resultBox.innerHTML = `
+                <div class="card">
+                    <div class="card-header"><b>Ringkasan Kalkulasi</b></div>
+                    <div class="card-body">
+                        ${summaryHtml}
+                        <hr>
+                        <b>Periode:</b> ${startDateStr} s/d ${endDateStr}<br>
+                        <b>Filter Aktif:</b>
+                        <ul class="list-unstyled small" style="margin-left: 15px; margin-top: 5px;">${filterDetails || "<li>Tidak ada filter</li>"}</ul>
+                        <button id="exportCalcResultBtn" class="btn btn-success btn-sm mt-3">
+                            <i class="fa fa-file-excel-o"></i> Export Hasil ke Excel
+                        </button>
+                    </div>
+                </div>
+                ${detailUnitTableHtml}`;
+
+                // ## MODIFIKASI UTAMA ADA DI SINI ##
+                // Event listener untuk tombol export yang baru dibuat.
+                document.getElementById('exportCalcResultBtn').onclick = function () {
+
+                    // Helper function untuk memastikan data aman untuk format CSV/Excel
+                    function escapeCell(str) {
+                        // Konversi nilai null atau undefined menjadi string kosong
+                        if (str == null) {
+                            return '';
+                        }
+                        str = String(str);
+                        // Jika data mengandung titik koma, kutip ganda, atau baris baru, bungkus dengan kutip ganda
+                        if (str.includes(';') || str.includes('"') || str.includes('\n')) {
+                            // Ganti setiap kutip ganda di dalam string dengan dua kutip ganda
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                    }
+
+                    const headers = [
+                        'No.', 'Nama/ID Aset', 'Serial Number', 'Tipe Unit', 'Lokasi',
+                        'Departemen', 'Tgl Dibuat', 'Tanggal Akhir', 'Harga Satuan (Rp)', 'Total Biaya Periode (Rp)'
+                    ];
+
+                    // Menggunakan titik koma (;) sebagai separator agar kompatibel dengan Excel di Indonesia
+                    let csvContent = [headers.join(';')];
+
+                    filtered.forEach((row, index) => {
+                        const displayName = cleanVal(row[getColIdx(colMap.display_name)] || 'N/A');
+                        const serialNumber = cleanVal(row[getColIdx(colMap.serial_number)] || 'N/A');
+                        const uType = cleanVal(row[getColIdx(colMap.u_type)]);
+                        const location = cleanVal(row[getColIdx(colMap.location)]);
+                        const department = cleanVal(row[getColIdx(colMap.department)]);
+                        const creationDate = cleanVal(row[getColIdx(colMap.u_creation_date)]);
+
+                        const hargaSatuan = hargaMap[uType] || 0;
+                        let biayaTotalUnit = 0;
+                        if (isFixedLeasing) {
+                            biayaTotalUnit = fixedHarga;
+                        } else {
+                            biayaTotalUnit = hargaSatuan * durasi;
+                        }
+
+                        const rowData = [
+                            index + 1,
+                            displayName,
+                            serialNumber,
+                            uType,
+                            location,
+                            department,
+                            creationDate,
+                            endDateStr,
+                            hargaSatuan, // Ekspor angka tanpa format Rupiah agar bisa dihitung di Excel
+                            biayaTotalUnit // Ekspor angka tanpa format Rupiah
+                        ];
+
+                        csvContent.push(rowData.map(escapeCell).join(';')); // Gunakan titik koma (;)
+                    });
+
+                    // Gabungkan semua baris menjadi satu string, tambahkan BOM untuk Excel
+                    const csvString = csvContent.join('\n');
+                    const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+
+                    const link = document.createElement("a");
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    // Ubah ekstensi file menjadi .csv, Excel akan tetap membukanya dengan benar
+                    link.setAttribute("download", `Hasil_Kalkulasi_Sewa_${endDateStr}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
             };
         })();
     </script>
+
+  
 
     <script>
 
