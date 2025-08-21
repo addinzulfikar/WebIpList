@@ -51,17 +51,17 @@ namespace YourNamespace.Controllers
                     if (rowIndex == 0)
                     {
                         headers = values;
-                        if (headers.Length != 28)
+                        if (headers.Length != 30)
                         {
-                            ViewBag.Error = $"Header must have exactly 28 columns. Found: {headers.Length}";
+                            ViewBag.Error = $"Header must have exactly 30 columns. Found: {headers.Length}";
                             return View();
                         }
                     }
                     else
                     {
-                        if (values.Length != 28)
+                        if (values.Length != 30)
                         {
-                            Array.Resize(ref values, 28);
+                            Array.Resize(ref values, 30);
                         }
                         rows.Add(values);
                     }
